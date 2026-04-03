@@ -18,6 +18,7 @@ jobs:
       - name: Deploy to Fly.io
         uses: superfly/flyctl-actions@master
         with:
-          args: "deploy --app tankid-api --config ./api/fly.toml"
+          args: "deploy --app tankid-api"
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        working-directory: ./api
