@@ -1,8 +1,12 @@
 const express = require('express');
 const { Pool } = require('pg');
+const cors = require('cors');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Health check
 app.get('/health', (req, res) => {
@@ -14,11 +18,21 @@ app.get('/tank/:id', async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Validate integer ID format
-    const tankId = parseInt(id);
-    if (isNaN(tankId) || tankId <= 0) {
+    // Validate UUID format or allow integer fallback
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const isUuid = uuidRegex.test(id);
+    const isInteger = /^\d+$/.test(id);
+    
+    if (!isUuid && !isInteger) {
       return res.status(400).json({ error: 'Invalid tank ID format' });
     }
+    
+    // For now, always return 404 for UUIDs since we don't have UUID data yet
+    if (isUuid) {
+      return res.status(404).json({ error: 'Tank not found' });
+    }
+    
+    const tankId = parseInt(id);
 
     const tankResult = await pool.query(`
       SELECT
