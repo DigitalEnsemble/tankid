@@ -14,6 +14,7 @@ const { quickFix1643 } = require('./quick-fix-1643');
 const { addComprehensiveTanks } = require('./add-comprehensive-tanks');
 const { createDocumentsTable } = require('./create-documents-table');
 const { simpleUploadDocs } = require('./simple-upload-docs');
+const { createDocRecords } = require('./create-doc-records');
 
 const app = express();
 
@@ -179,6 +180,20 @@ app.get('/setup-documents', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to setup documents'
+    });
+  }
+});
+
+// Create document records
+app.get('/create-doc-records', async (req, res) => {
+  try {
+    const result = await createDocRecords();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to create document records'
     });
   }
 });
