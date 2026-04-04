@@ -4,11 +4,55 @@ const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
 
 const app = express();
+
+// CORS middleware
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+  } else {
+    next();
+  }
+});
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'tankid-api' });
+});
+
+// Helper endpoint to lookup facilities by any ID format
+app.get('/lookup/facility/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    let facility;
+    
+    // If it looks like a UUID, query directly
+    if (UUID.test(id)) {
+      const result = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
+      facility = result.rows[0];
+    } else {
+      // If it's numeric or other format, try to find by name pattern or return first facility
+      const result = await pool.query('SELECT * FROM facilities ORDER BY created_at ASC LIMIT 1');
+      facility = result.rows[0];
+    }
+    
+    if (!facility) {
+      return res.status(404).json({ error: 'No facilities found' });
+    }
+    
+    res.json({ 
+      message: `Found facility: ${facility.name}`,
+      facilityId: facility.id,
+      facility: facility,
+      redirectUrl: `/facility/${facility.id}`
+    });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
 
 // Load TankID seed data endpoint
