@@ -70,10 +70,10 @@ async function addComprehensiveTanks() {
     for (const tank of tanks) {
       const newTank = await pool.query(`
         INSERT INTO tanks (
-          tank_number, serial_number, facility_id, model_id, product_grade, 
+          id, tank_number, serial_number, facility_id, model_id, product_grade, 
           install_date, install_contractor, access_level, created_at, updated_at
         ) VALUES (
-          $1, $2, $3, $4, $5, '2025-03-07', 'UST Installer Inc.', 'public', NOW(), NOW()
+          gen_random_uuid(), $1, $2, $3, $4, $5, '2025-03-07', 'UST Installer Inc.', 'public', NOW(), NOW()
         ) RETURNING id, tank_number;
       `, [
         tank.tank_number, tank.serial_number, facilityId, tankModelId, tank.product_grade
