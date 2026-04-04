@@ -73,13 +73,13 @@ app.get('/lookup/facility/:id', async (req, res) => {
         SELECT f.*, COUNT(t.id) as tank_count
         FROM facilities f
         LEFT JOIN tanks t ON t.facility_id = f.id
-        WHERE f.ops_facility_id = $1 
+        WHERE f.ops_facility_id = $1
            OR f.name ILIKE '%' || $1 || '%'
            OR f.city ILIKE '%' || $1 || '%'
         GROUP BY f.id
-        ORDER BY 
+        ORDER BY
           CASE WHEN f.ops_facility_id = $1 THEN 1 ELSE 2 END,
-          tank_count DESC, 
+          tank_count DESC,
           f.created_at ASC
         LIMIT 1
       `, [id]);
@@ -226,20 +226,10 @@ app.get('/facility/:id', async (req, res) => {
       ORDER BY t.tank_number ASC, t.ops_tank_id ASC
     `, [id]);
 
-    // Get document counts by type
-    const documents = await pool.query(`
-      SELECT doc_type, COUNT(*) as count
-      FROM documents
-      WHERE linked_tanks && ARRAY[(SELECT ops_facility_id FROM facilities WHERE id = $1)]
-      GROUP BY doc_type
-    `, [id]);
-
+    // Documents will be added later after documents table is created
     const facility = {
       ...fac.rows[0],
-      document_summary: documents.rows.reduce((acc, doc) => {
-        acc[doc.doc_type] = parseInt(doc.count);
-        return acc;
-      }, {})
+      document_summary: {} // Placeholder for future document counts
     };
 
     res.json({ facility, tanks: tanks.rows });
@@ -347,7 +337,7 @@ app.get('/tank/:id', async (req, res) => {
 
     // Documents placeholder (will be added after documents table exists)
     const documents = [];
-    
+
     res.json({ tank, chart, documents });
   } catch (err) {
     console.error(err.message);
