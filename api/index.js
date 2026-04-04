@@ -11,30 +11,38 @@ app.use((req, res, next) => {
   next();
 });
 
-// Load sample data using integer IDs
+// Load sample data with simple inserts (ignore duplicates)
 app.get('/load-sample-data', async (req, res) => {
+  let results = { created: [], errors: [] };
+  
   try {
-    // Insert sample facility
-    await pool.query(`
-      INSERT INTO facilities (id, name, city, state, created_at)
-      VALUES ($1, $2, $3, $4, NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        name = EXCLUDED.name,
-        city = EXCLUDED.city,
-        state = EXCLUDED.state
-    `, [1, 'Test Gas Station', 'Anytown', 'TX']);
+    // Insert sample facility (ignore if exists)
+    try {
+      await pool.query(`
+        INSERT INTO facilities (id, name, city, state, created_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [1, 'Test Gas Station', 'Anytown', 'TX']);
+      results.created.push('Facility');
+    } catch (err) {
+      if (err.code !== '23505') { // Not a duplicate key error
+        results.errors.push(`Facility: ${err.message}`);
+      }
+    }
     
-    // Insert sample tank model
-    await pool.query(`
-      INSERT INTO tank_models (id, manufacturer, model_name, capacity_gallons, created_at)
-      VALUES ($1, $2, $3, $4, NOW())
-      ON CONFLICT (id) DO UPDATE SET
-        manufacturer = EXCLUDED.manufacturer,
-        model_name = EXCLUDED.model_name,
-        capacity_gallons = EXCLUDED.capacity_gallons
-    `, [1, 'Xerxes', 'FRP-2000', 10000]);
+    // Insert sample tank model (ignore if exists)
+    try {
+      await pool.query(`
+        INSERT INTO tank_models (id, manufacturer, model_name, capacity_gallons, created_at)
+        VALUES ($1, $2, $3, $4, NOW())
+      `, [1, 'Xerxes', 'FRP-2000', 10000]);
+      results.created.push('Tank model');
+    } catch (err) {
+      if (err.code !== '23505') {
+        results.errors.push(`Tank model: ${err.message}`);
+      }
+    }
     
-    // Insert sample tanks
+    // Insert sample tanks (ignore if exist)
     const tanks = [
       { id: 1, serial_number: 'ABC123456' },
       { id: 2, serial_number: 'DEF789012' },
@@ -42,56 +50,56 @@ app.get('/load-sample-data', async (req, res) => {
     ];
     
     for (const tank of tanks) {
-      await pool.query(`
-        INSERT INTO tanks (id, facility_id, model_id, serial_number, created_at)
-        VALUES ($1, $2, $3, $4, NOW())
-        ON CONFLICT (id) DO UPDATE SET
-          facility_id = EXCLUDED.facility_id,
-          model_id = EXCLUDED.model_id,
-          serial_number = EXCLUDED.serial_number
-      `, [tank.id, 1, 1, tank.serial_number]);
+      try {
+        await pool.query(`
+          INSERT INTO tanks (id, facility_id, model_id, serial_number, created_at)
+          VALUES ($1, $2, $3, $4, NOW())
+        `, [tank.id, 1, 1, tank.serial_number]);
+        results.created.push(`Tank ${tank.id}`);
+      } catch (err) {
+        if (err.code !== '23505') {
+          results.errors.push(`Tank ${tank.id}: ${err.message}`);
+        }
+      }
     }
     
-    // Insert sample chart readings for tank 1
+    // Insert sample chart readings for tank 1 (ignore if exist)
     const chartData = [
       { height_inches: 0, volume_gallons: 0 },
-      { height_inches: 6, volume_gallons: 750 },
       { height_inches: 12, volume_gallons: 1500 },
-      { height_inches: 18, volume_gallons: 2250 },
       { height_inches: 24, volume_gallons: 3000 },
-      { height_inches: 30, volume_gallons: 3750 },
       { height_inches: 36, volume_gallons: 4500 },
-      { height_inches: 42, volume_gallons: 5250 },
       { height_inches: 48, volume_gallons: 6000 },
-      { height_inches: 54, volume_gallons: 6750 },
       { height_inches: 60, volume_gallons: 7500 },
-      { height_inches: 66, volume_gallons: 8250 },
       { height_inches: 72, volume_gallons: 9000 },
-      { height_inches: 78, volume_gallons: 9500 },
-      { height_inches: 84, volume_gallons: 9800 },
-      { height_inches: 90, volume_gallons: 9950 }
+      { height_inches: 84, volume_gallons: 9800 }
     ];
     
     for (const reading of chartData) {
-      await pool.query(`
-        INSERT INTO tank_chart_readings (tank_id, height_inches, volume_gallons, created_at)
-        VALUES ($1, $2, $3, NOW())
-        ON CONFLICT (tank_id, height_inches) DO UPDATE SET
-          volume_gallons = EXCLUDED.volume_gallons
-      `, [1, reading.height_inches, reading.volume_gallons]);
+      try {
+        await pool.query(`
+          INSERT INTO tank_chart_readings (tank_id, height_inches, volume_gallons, created_at)
+          VALUES ($1, $2, $3, NOW())
+        `, [1, reading.height_inches, reading.volume_gallons]);
+        results.created.push(`Chart reading ${reading.height_inches}"`);
+      } catch (err) {
+        if (err.code !== '23505') {
+          results.errors.push(`Chart ${reading.height_inches}": ${err.message}`);
+        }
+      }
     }
     
     res.json({ 
       success: true, 
-      message: 'Sample data loaded successfully!',
+      message: 'Sample data loaded!',
+      results: results,
       facility_url: '/facility/1',
-      tank_url: '/tank/1',
-      note: 'Database uses integer IDs, not UUIDs'
+      tank_url: '/tank/1'
     });
     
   } catch (err) {
     console.error('Error loading sample data:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message, results: results });
   }
 });
 
