@@ -1,6 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
+const { migrateToUUIDs } = require('./migrate-to-uuids');
 
 const app = express();
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
@@ -20,6 +21,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Migrate to UUIDs endpoint
+app.get('/migrate-to-uuids', async (req, res) => {
+  try {
+    const result = await migrateToUUIDs();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to migrate to UUIDs'
     });
   }
 });
