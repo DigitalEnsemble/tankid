@@ -13,6 +13,7 @@ const { loadComprehensiveData } = require('./load-comprehensive-data');
 const { quickFix1643 } = require('./quick-fix-1643');
 const { addComprehensiveTanks } = require('./add-comprehensive-tanks');
 const { createDocumentsTable } = require('./create-documents-table');
+const { simpleUploadDocs } = require('./simple-upload-docs');
 
 const app = express();
 
@@ -164,6 +165,20 @@ app.get('/upload-tank-documents', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to upload tank documents'
+    });
+  }
+});
+
+// Simple document setup check
+app.get('/setup-documents', async (req, res) => {
+  try {
+    const result = await simpleUploadDocs();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to setup documents'
     });
   }
 });
