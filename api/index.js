@@ -3,6 +3,7 @@ const { Pool } = require('pg');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
 const { loadEnhancedTankIDSeedData } = require('./load-tankid-seed-enhanced');
+const { enhanceExistingTanks } = require('./enhance-existing-tanks');
 
 const app = express();
 
@@ -103,6 +104,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Enhance existing tanks with detailed specifications
+app.get('/enhance-tanks', async (req, res) => {
+  try {
+    const result = await enhanceExistingTanks();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to enhance tanks'
     });
   }
 });
