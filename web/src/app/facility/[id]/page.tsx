@@ -6,6 +6,14 @@ import Link from 'next/link';
 
 type Tank = {
   id: string;
+  serial_number: string;
+  manufacturer: string;
+  model_name: string;
+  capacity_gallons: number;
+};
+
+type TankOld = {
+  id: string;
   tank_number: string;
   serial_number: string;
   product_grade: string;
@@ -46,7 +54,21 @@ export default function FacilityPage() {
     const fetchFacility = async () => {
       try {
         const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://tankid-api.fly.dev';
-        const response = await fetch(`${API_BASE}/facility/${id}`);
+        let facilityId = id;
+        
+        // If the ID doesn't look like a UUID, use lookup endpoint first
+        const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+        if (!uuidPattern.test(id)) {
+          const lookupResponse = await fetch(`${API_BASE}/lookup/facility/${id}`);
+          if (lookupResponse.ok) {
+            const lookupData = await lookupResponse.json();
+            facilityId = lookupData.facilityId;
+          } else {
+            throw new Error('Facility not found');
+          }
+        }
+        
+        const response = await fetch(`${API_BASE}/facility/${facilityId}`);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -111,20 +133,17 @@ export default function FacilityPage() {
 
         {/* Tank List */}
         <div className="space-y-3">
-          {tanks.map((tank) => (
+          {tanks.map((tank, index) => (
             <Link key={tank.id} href={`/tank/${tank.id}`}>
               <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-200 hover:border-blue-300">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Tank {tank.tank_number}
+                    Tank {index + 1}
                   </h3>
                   <div className="text-right">
                     <div className="text-sm font-medium text-blue-600">
-                      {tank.product_grade}
+                      {tank.capacity_gallons.toLocaleString()} gal
                     </div>
-                    {tank.octane && (
-                      <div className="text-xs text-gray-500">{tank.octane} oct</div>
-                    )}
                   </div>
                 </div>
                 
@@ -134,16 +153,10 @@ export default function FacilityPage() {
                     <div className="font-mono">{tank.serial_number}</div>
                   </div>
                   <div>
-                    <div className="text-gray-500">Capacity</div>
-                    <div>{tank.nominal_capacity_gal ? `${tank.nominal_capacity_gal.toLocaleString()} gal` : 'Unknown'}</div>
+                    <div className="text-gray-500">Model</div>
+                    <div>{tank.manufacturer} {tank.model_name}</div>
                   </div>
                 </div>
-
-                {(tank.manufacturer || tank.model_name) && (
-                  <div className="mt-2 text-xs text-gray-500">
-                    {tank.manufacturer} {tank.model_name}
-                  </div>
-                )}
 
                 <div className="mt-3 text-right">
                   <span className="text-blue-600 text-sm font-medium">View Details →</span>

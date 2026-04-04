@@ -81,14 +81,22 @@ export default function Home() {
 
               <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  Try a sample facility:
+                  Try sample facilities:
                 </p>
-                <Link 
-                  href="/facility/1"
-                  className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
-                >
-                  View Sample Facility Profile →
-                </Link>
+                <div className="space-y-1">
+                  <Link 
+                    href="/facility/defbe304-0b20-4832-9985-2d2df0946e64"
+                    className="block text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                  >
+                    Test Gas Station (3 tanks) →
+                  </Link>
+                  <Link 
+                    href="/facility/1643"
+                    className="block text-blue-600 dark:text-blue-400 hover:underline text-sm"
+                  >
+                    Try with number: 1643 →
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

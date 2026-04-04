@@ -23,6 +23,32 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'tankid-api' });
 });
 
+// List all facilities with tank counts
+app.get('/facilities', async (req, res) => {
+  try {
+    const result = await pool.query(`
+      SELECT f.*, COUNT(t.id) as tank_count 
+      FROM facilities f 
+      LEFT JOIN tanks t ON t.facility_id = f.id 
+      GROUP BY f.id 
+      ORDER BY tank_count DESC, f.name ASC
+    `);
+    
+    const facilities = result.rows.map(row => ({
+      id: row.id,
+      name: row.name,
+      city: row.city,
+      state: row.state,
+      tank_count: parseInt(row.tank_count)
+    }));
+    
+    res.json({ facilities });
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // Helper endpoint to lookup facilities by any ID format
 app.get('/lookup/facility/:id', async (req, res) => {
   try {
@@ -34,8 +60,15 @@ app.get('/lookup/facility/:id', async (req, res) => {
       const result = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
       facility = result.rows[0];
     } else {
-      // If it's numeric or other format, try to find by name pattern or return first facility
-      const result = await pool.query('SELECT * FROM facilities ORDER BY created_at ASC LIMIT 1');
+      // If it's numeric or other format, prefer facilities with tanks
+      const result = await pool.query(`
+        SELECT f.*, COUNT(t.id) as tank_count 
+        FROM facilities f 
+        LEFT JOIN tanks t ON t.facility_id = f.id 
+        GROUP BY f.id 
+        ORDER BY tank_count DESC, f.created_at ASC 
+        LIMIT 1
+      `);
       facility = result.rows[0];
     }
     
@@ -43,10 +76,14 @@ app.get('/lookup/facility/:id', async (req, res) => {
       return res.status(404).json({ error: 'No facilities found' });
     }
     
+    const tankCount = facility.tank_count || 0;
+    delete facility.tank_count; // Remove count from response
+    
     res.json({ 
-      message: `Found facility: ${facility.name}`,
+      message: `Found facility: ${facility.name} (${tankCount} tanks)`,
       facilityId: facility.id,
       facility: facility,
+      tankCount: tankCount,
       redirectUrl: `/facility/${facility.id}`
     });
   } catch (err) {
