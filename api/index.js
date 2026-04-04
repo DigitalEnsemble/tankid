@@ -16,6 +16,7 @@ const { createDocumentsTable } = require('./create-documents-table');
 const { simpleUploadDocs } = require('./simple-upload-docs');
 const { createDocRecords } = require('./create-doc-records');
 const { checkDocsTable } = require('./check-docs-table');
+const { createTankDocs } = require('./create-tank-docs');
 
 const app = express();
 
@@ -209,6 +210,20 @@ app.get('/check-docs-table', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to check documents table'
+    });
+  }
+});
+
+// Create tank documents with proper table
+app.get('/create-tank-docs', async (req, res) => {
+  try {
+    const result = await createTankDocs();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to create tank documents'
     });
   }
 });
@@ -419,7 +434,7 @@ app.get('/tank/:id', async (req, res) => {
       SELECT 
         id, original_filename, doc_type, description, 
         file_path, file_size, created_at
-      FROM documents 
+      FROM tank_documents 
       WHERE $1 = ANY(linked_tanks)
       ORDER BY doc_type, original_filename
     `, [id]);
@@ -447,7 +462,7 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
       // Get documents for facility (by ops_facility_id)
       query = `
         SELECT d.*
-        FROM documents d
+        FROM tank_documents d
         JOIN facilities f ON d.facility_id = f.id
         WHERE f.ops_facility_id = $1
         ORDER BY d.doc_type, d.original_filename
@@ -456,7 +471,7 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     } else if (entityType === 'tank') {
       // Get documents for specific tank (by tank UUID)
       query = `
-        SELECT * FROM documents
+        SELECT * FROM tank_documents
         WHERE $1 = ANY(linked_tanks)
         ORDER BY doc_type, original_filename
       `;
