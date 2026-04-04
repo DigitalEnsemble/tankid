@@ -1,5 +1,6 @@
 const express = require('express');
 const { Pool } = require('pg');
+const path = require('path');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
 const { loadEnhancedTankIDSeedData } = require('./load-tankid-seed-enhanced');
@@ -11,6 +12,7 @@ const { loadComprehensiveData } = require('./load-comprehensive-data');
 // const { loadSimpleComprehensive } = require('./load-simple-comprehensive');
 const { quickFix1643 } = require('./quick-fix-1643');
 const { addComprehensiveTanks } = require('./add-comprehensive-tanks');
+const { createDocumentsTable } = require('./create-documents-table');
 
 const app = express();
 
@@ -27,6 +29,9 @@ app.use((req, res, next) => {
 });
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// Serve static documents
+app.use('/documents', express.static(path.join(__dirname, 'public', 'documents')));
 
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'tankid-api' });
@@ -145,6 +150,20 @@ app.get('/add-comprehensive-tanks', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to add comprehensive tanks'
+    });
+  }
+});
+
+// Create documents table and upload tank documents
+app.get('/upload-tank-documents', async (req, res) => {
+  try {
+    const result = await createDocumentsTable();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to upload tank documents'
     });
   }
 });
@@ -350,8 +369,20 @@ app.get('/tank/:id', async (req, res) => {
       }
     }
 
-    // Documents placeholder (will be added after documents table exists)
-    const documents = [];
+    // Query for documents related to this tank
+    const documentsResult = await pool.query(`
+      SELECT 
+        id, original_filename, doc_type, description, 
+        file_path, file_size, created_at
+      FROM documents 
+      WHERE $1 = ANY(linked_tanks)
+      ORDER BY doc_type, original_filename
+    `, [id]);
+    
+    const documents = documentsResult.rows.map(doc => ({
+      ...doc,
+      download_url: `https://tankid-api.fly.dev${doc.file_path}`
+    }));
 
     res.json({ tank, chart, documents });
   } catch (err) {
@@ -368,23 +399,20 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     let query, params;
 
     if (entityType === 'facility') {
-      // Get documents for all tanks in facility
+      // Get documents for facility (by ops_facility_id)
       query = `
-        SELECT d.*,
-               ARRAY_AGG(DISTINCT unnest(d.linked_tanks)) as tanks
-        FROM documents d,
-             facilities f
+        SELECT d.*
+        FROM documents d
+        JOIN facilities f ON d.facility_id = f.id
         WHERE f.ops_facility_id = $1
-        AND d.linked_tanks && ARRAY[f.ops_facility_id]
-        GROUP BY d.id, d.doc_type, d.original_filename, d.file_path, d.upload_date
         ORDER BY d.doc_type, d.original_filename
       `;
       params = [entityId];
     } else if (entityType === 'tank') {
-      // Get documents for specific tank
+      // Get documents for specific tank (by tank UUID)
       query = `
         SELECT * FROM documents
-        WHERE linked_tanks && ARRAY[$1]
+        WHERE $1 = ANY(linked_tanks)
         ORDER BY doc_type, original_filename
       `;
       params = [entityId];
