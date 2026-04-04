@@ -6,8 +6,9 @@ const { loadEnhancedTankIDSeedData } = require('./load-tankid-seed-enhanced');
 const { enhanceExistingTanks } = require('./enhance-existing-tanks');
 const { migrateComprehensiveSchema } = require('./migrate-comprehensive-schema');
 const { loadComprehensiveData } = require('./load-comprehensive-data');
-const { simpleComprehensiveMigration } = require('./simple-comprehensive-migration');
-const { loadSimpleComprehensive } = require('./load-simple-comprehensive');
+// Temporarily disabled: migration endpoints
+// const { simpleComprehensiveMigration } = require('./simple-comprehensive-migration');
+// const { loadSimpleComprehensive } = require('./load-simple-comprehensive');
 
 const app = express();
 
@@ -112,33 +113,8 @@ app.get('/load-tankid-seed', async (req, res) => {
   }
 });
 
-// Simple comprehensive migration
-app.get('/migrate-simple', async (req, res) => {
-  try {
-    const result = await simpleComprehensiveMigration();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to run simple comprehensive migration'
-    });
-  }
-});
-
-// Load simple comprehensive data
-app.get('/load-simple', async (req, res) => {
-  try {
-    const result = await loadSimpleComprehensive();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      error: error.message,
-      message: 'Failed to load simple comprehensive data'
-    });
-  }
-});
+// Simple migration endpoints temporarily disabled
+// Will be re-enabled after fixing module loading issues
 
 // Migrate to comprehensive schema
 app.get('/migrate-comprehensive', async (req, res) => {
