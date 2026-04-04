@@ -6,6 +6,7 @@ import Link from 'next/link';
 
 type Tank = {
   id: string;
+  tank_number: string;
   serial_number: string;
   manufacturer: string;
   model_name: string;
@@ -138,7 +139,7 @@ export default function FacilityPage() {
               <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-200 hover:border-blue-300">
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="text-lg font-semibold text-gray-900">
-                    Tank {index + 1}
+                    Tank {tank.tank_number}
                   </h3>
                   <div className="text-right">
                     <div className="text-sm font-medium text-blue-600">
