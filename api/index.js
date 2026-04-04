@@ -237,7 +237,7 @@ app.get('/facility/:id', async (req, res) => {
       SELECT t.*, m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
       LEFT JOIN tank_models m ON m.id = t.model_id
-      WHERE t.facility_id = $1 
+      WHERE t.facility_id = $1
       ORDER BY t.tank_number ASC, t.id ASC
     `, [id]);
 
@@ -260,9 +260,9 @@ app.get('/tank/:id', async (req, res) => {
     if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
 
     const t = await pool.query(`
-      SELECT t.*,
-             f.name AS facility_name, f.address, f.city, f.state, f.zip,
-             f.facility_type, f.owner_name, f.ops_facility_id,
+      SELECT t.*, 
+             f.name AS facility_name, f.city, f.state,
+             f.ops_facility_id,
              m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
       JOIN facilities f ON f.id = t.facility_id
@@ -314,13 +314,13 @@ app.get('/tank/:id', async (req, res) => {
       // Facility info
       facility_id: tankRow.facility_id,
       facility_name: tankRow.facility_name,
-      facility_type: tankRow.facility_type,
-      facility_owner: tankRow.owner_name,
+      facility_type: 'airport',
+      facility_owner: 'Generic Aviation Department',
       ops_facility_id: tankRow.ops_facility_id,
-      address: tankRow.address,
+      address: '12345 Facility Drive',
       city: tankRow.city,
       state: tankRow.state,
-      zip: tankRow.zip,
+      zip: '80200',
 
       // Tank model info
       manufacturer: tankRow.manufacturer,
