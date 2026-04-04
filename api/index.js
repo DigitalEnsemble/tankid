@@ -15,6 +15,7 @@ const { addComprehensiveTanks } = require('./add-comprehensive-tanks');
 const { createDocumentsTable } = require('./create-documents-table');
 const { simpleUploadDocs } = require('./simple-upload-docs');
 const { createDocRecords } = require('./create-doc-records');
+const { checkDocsTable } = require('./check-docs-table');
 
 const app = express();
 
@@ -194,6 +195,20 @@ app.get('/create-doc-records', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to create document records'
+    });
+  }
+});
+
+// Check documents table structure
+app.get('/check-docs-table', async (req, res) => {
+  try {
+    const result = await checkDocsTable();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to check documents table'
     });
   }
 });
