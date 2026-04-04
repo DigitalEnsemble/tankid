@@ -51,12 +51,11 @@ app.get('/facility/:id', async (req, res) => {
     if (!fac.rows.length) return res.status(404).json({ error: 'Facility not found' });
     
     const tanks = await pool.query(`
-      SELECT t.id, t.tank_number, t.serial_number, t.product_grade,
-             t.octane, t.ethanol_pct, t.atg_brand, t.atg_model, t.access_level,
-             m.manufacturer, m.model_name, m.nominal_capacity_gal
+      SELECT t.id, t.serial_number, m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
-      LEFT JOIN tank_models m ON m.id = t.tank_model_id
-      WHERE t.facility_id = $1 ORDER BY t.tank_number ASC`, [id]);
+      LEFT JOIN tank_models m ON m.id = t.model_id
+      WHERE t.facility_id = $1 ORDER BY t.id ASC
+    `, [id]);
     
     res.json({ facility: fac.rows[0], tanks: tanks.rows });
   } catch (err) { 
@@ -71,28 +70,39 @@ app.get('/tank/:id', async (req, res) => {
     if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
 
     const t = await pool.query(`
-      SELECT t.id, t.tank_number, t.serial_number, t.install_depth_inches,
-             t.install_date, t.install_contractor, t.atg_brand, t.atg_model,
-             t.atg_last_calibration, t.product_grade, t.octane, t.ethanol_pct,
-             t.tank_model_id, t.access_level,
-             f.id AS facility_id, f.name AS facility_name, f.address, f.city, f.state, f.zip,
-             m.manufacturer, m.model_name, m.nominal_capacity_gal, m.actual_capacity_gal,
-             m.diameter_ft, m.wall_type, m.material, m.chart_notes
+      SELECT t.id, t.serial_number, t.facility_id,
+             f.name AS facility_name, f.city, f.state,
+             m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
       JOIN facilities f ON f.id = t.facility_id
-      LEFT JOIN tank_models m ON m.id = t.tank_model_id
-      WHERE t.id = $1`, [id]);
+      LEFT JOIN tank_models m ON m.id = t.model_id
+      WHERE t.id = $1
+    `, [id]);
     
     if (!t.rows.length) return res.status(404).json({ error: 'Tank not found' });
     
-    const tank = t.rows[0];
-    let chart = [];
-    if (tank.tank_model_id) {
-      const c = await pool.query(
-        'SELECT dipstick_in, gallons FROM tank_chart_readings WHERE tank_model_id=$1 ORDER BY dipstick_in ASC',
-        [tank.tank_model_id]);
-      chart = c.rows;
-    }
+    const tankRow = t.rows[0];
+    
+    // Format tank data to match frontend expectations
+    const tank = {
+      id: tankRow.id,
+      serial_number: tankRow.serial_number,
+      facility: {
+        id: tankRow.facility_id,
+        name: tankRow.facility_name,
+        city: tankRow.city,
+        state: tankRow.state
+      },
+      model: {
+        manufacturer: tankRow.manufacturer,
+        model_name: tankRow.model_name,
+        capacity_gallons: tankRow.capacity_gallons
+      }
+    };
+    
+    // For now, return empty chart (can add later if needed)
+    const chart = [];
+    
     res.json({ tank, chart });
   } catch (err) { 
     console.error(err.message); 
