@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, use } from 'react';
+import { useParams } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Line } from 'react-chartjs-2';
 import {
@@ -14,7 +15,6 @@ import {
   Legend,
 } from 'chart.js';
 
-// Register Chart.js components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -25,81 +25,118 @@ ChartJS.register(
   Legend
 );
 
-interface TankData {
-  id: string;
-  name?: string;
-  calibrationData?: Array<{
-    depth: number;
-    volume: number;
-  }>;
-  metadata?: {
-    capacity?: number;
-    units?: string;
-    lastCalibrated?: string;
-  };
-}
+type ChartReading = {
+  dipstick_in: number;
+  gallons: number;
+};
 
-export default function TankProfile({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = use(params);
-  const [tankData, setTankData] = useState<TankData | null>(null);
+type Tank = {
+  id: string;
+  tank_number: string;
+  serial_number: string;
+  install_depth_inches: number | null;
+  install_date: string | null;
+  install_contractor: string | null;
+  atg_brand: string;
+  atg_model: string;
+  atg_last_calibration: string | null;
+  product_grade: string;
+  octane: number | null;
+  ethanol_pct: number | null;
+  tank_model_id: string | null;
+  access_level: string;
+  facility_id: string;
+  facility_name: string;
+  address: string;
+  city: string;
+  state: string;
+  zip: string;
+  manufacturer: string;
+  model_name: string;
+  nominal_capacity_gal: number | null;
+  actual_capacity_gal: number | null;
+  diameter_ft: number | null;
+  wall_type: string | null;
+  material: string | null;
+  chart_notes: string | null;
+};
+
+type TankData = {
+  tank: Tank;
+  chart: ChartReading[];
+};
+
+export default function TankPage() {
+  const params = useParams();
+  const id = params?.id as string;
+  const [data, setData] = useState<TankData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const fetchTankData = async () => {
+    if (!id) return;
+    
+    const fetchTank = async () => {
       try {
-        setLoading(true);
-        setError(null);
-        
-        const response = await fetch(`https://tankid-api.fly.dev/tank/${resolvedParams.id}`);
-        
-        if (response.status === 404) {
-          setError('Tank not found');
-          return;
-        }
+        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'https://tankid-api.fly.dev';
+        const response = await fetch(`${API_BASE}/tank/${id}`);
         
         if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || `HTTP ${response.status}`);
         }
         
-        const data = await response.json();
-        setTankData(data);
+        const tankData = await response.json();
+        setData(tankData);
       } catch (err) {
-        console.error('Error fetching tank data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load tank data');
+        setError(err instanceof Error ? err.message : 'Failed to load tank');
       } finally {
         setLoading(false);
       }
     };
-
-    fetchTankData();
-  }, [resolvedParams.id]);
-
-  // Generate sample calibration data if none exists
-  const getCalibrationData = () => {
-    if (tankData?.calibrationData) {
-      return tankData.calibrationData;
-    }
     
-    // Sample data for demonstration
-    return Array.from({ length: 21 }, (_, i) => ({
-      depth: i * 5, // 0 to 100 cm in 5cm increments
-      volume: Math.round(Math.pow(i * 5, 1.8) * 2.5), // Non-linear relationship
-    }));
-  };
+    fetchTank();
+  }, [id]);
 
-  const calibrationData = getCalibrationData();
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">Loading tank...</div>
+      </div>
+    );
+  }
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 text-lg mb-4">Error: {error}</div>
+          <div className="text-sm text-gray-500">Tank ID: {id}</div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!data) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-lg">No tank data</div>
+      </div>
+    );
+  }
+
+  const { tank, chart } = data;
+
+  // Prepare chart data
   const chartData = {
-    labels: calibrationData.map(point => `${point.depth}cm`),
+    labels: chart.map(r => `${r.dipstick_in}"`),
     datasets: [
       {
-        label: 'Volume (L)',
-        data: calibrationData.map(point => point.volume),
+        label: 'Volume (gallons)',
+        data: chart.map(r => r.gallons),
         borderColor: 'rgb(59, 130, 246)',
         backgroundColor: 'rgba(59, 130, 246, 0.1)',
         borderWidth: 2,
-        fill: true,
         tension: 0.1,
       },
     ],
@@ -109,167 +146,169 @@ export default function TankProfile({ params }: { params: Promise<{ id: string }
     responsive: true,
     plugins: {
       legend: {
-        position: 'top' as const,
+        display: false,
       },
       title: {
         display: true,
-        text: 'Tank Calibration: Depth vs Volume',
+        text: 'Calibration Chart',
       },
     },
     scales: {
       x: {
         title: {
           display: true,
-          text: 'Depth (cm)',
+          text: 'Dipstick Reading (inches)',
         },
       },
       y: {
         title: {
           display: true,
-          text: 'Volume (L)',
+          text: 'Volume (gallons)',
         },
-        beginAtZero: true,
       },
     },
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto px-6 py-16">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-slate-600 dark:text-slate-300">Loading tank data...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-        <div className="container mx-auto px-6 py-16">
-          <div className="max-w-2xl mx-auto text-center">
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-8 mb-8">
-              <h1 className="text-2xl font-bold text-red-800 dark:text-red-200 mb-4">
-                {error === 'Tank not found' ? '🔍 Tank Not Found' : '❌ Error Loading Tank'}
-              </h1>
-              <p className="text-red-600 dark:text-red-300 mb-6">
-                {error === 'Tank not found' 
-                  ? `Tank ID "${resolvedParams.id}" does not exist in our system.`
-                  : `Error: ${error}`
-                }
-              </p>
-              <Link 
-                href="/"
-                className="inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-md transition-colors"
-              >
-                ← Back to Home
-              </Link>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
-      <div className="container mx-auto px-6 py-8">
-        {/* Header */}
-        <div className="mb-8">
+    <div className="min-h-screen bg-gray-50 py-6 px-4">
+      <div className="max-w-4xl mx-auto">
+        {/* Back Navigation */}
+        <div className="mb-6">
           <Link 
-            href="/"
-            className="text-blue-600 dark:text-blue-400 hover:underline mb-4 inline-block"
+            href={`/facility/${tank.facility_id}`}
+            className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
           >
-            ← Back to Home
+            ← Back to {tank.facility_name}
           </Link>
-          <h1 className="text-4xl font-bold text-slate-900 dark:text-slate-100 mb-2">
-            Tank Profile
-          </h1>
-          <p className="text-slate-600 dark:text-slate-300">
-            ID: <code className="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded text-sm">{resolvedParams.id}</code>
-          </p>
         </div>
 
-        {/* Tank Information */}
-        <div className="grid lg:grid-cols-3 gap-8 mb-8">
-          <div className="lg:col-span-1">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                Tank Information
-              </h2>
-              <div className="space-y-3">
-                <div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Name:</span>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {tankData?.name || 'Unnamed Tank'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Capacity:</span>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {tankData?.metadata?.capacity ? `${tankData.metadata.capacity}L` : 'Not specified'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Last Calibrated:</span>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {tankData?.metadata?.lastCalibrated || 'Unknown'}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm text-slate-500 dark:text-slate-400">Data Points:</span>
-                  <p className="font-medium text-slate-900 dark:text-slate-100">
-                    {calibrationData.length} measurements
-                  </p>
-                </div>
+        {/* Tank Header */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex justify-between items-start mb-4">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Tank {tank.tank_number}
+              </h1>
+              <div className="text-gray-600 mt-1">{tank.facility_name}</div>
+              <div className="text-sm text-gray-500">
+                {tank.address}, {tank.city}, {tank.state} {tank.zip}
               </div>
             </div>
-          </div>
-
-          {/* Calibration Chart */}
-          <div className="lg:col-span-2">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
-                Calibration Chart
-              </h2>
-              <div className="h-96">
-                <Line data={chartData} options={chartOptions} />
+            <div className="text-right">
+              <div className="text-lg font-semibold text-blue-600">
+                {tank.product_grade}
               </div>
+              {tank.octane && (
+                <div className="text-sm text-gray-500">{tank.octane} octane</div>
+              )}
+              {tank.ethanol_pct && (
+                <div className="text-sm text-gray-500">E{tank.ethanol_pct}</div>
+              )}
             </div>
           </div>
         </div>
 
-        {/* Calibration Data Table */}
-        <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-          <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-4">
-            Calibration Data
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-600">
-                  <th className="text-left p-2 font-medium text-slate-900 dark:text-slate-100">Depth (cm)</th>
-                  <th className="text-left p-2 font-medium text-slate-900 dark:text-slate-100">Volume (L)</th>
-                  <th className="text-left p-2 font-medium text-slate-900 dark:text-slate-100">Fill Percentage</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calibrationData.map((point, index) => (
-                  <tr key={index} className="border-b border-slate-100 dark:border-slate-700">
-                    <td className="p-2 text-slate-900 dark:text-slate-100">{point.depth}</td>
-                    <td className="p-2 text-slate-900 dark:text-slate-100">{point.volume}</td>
-                    <td className="p-2 text-slate-600 dark:text-slate-300">
-                      {Math.round((point.volume / Math.max(...calibrationData.map(p => p.volume))) * 100)}%
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <div className="grid md:grid-cols-2 gap-6">
+          {/* Tank Details */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4">Tank Details</h2>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-gray-500">Serial Number</div>
+                <div className="font-mono">{tank.serial_number}</div>
+              </div>
+              
+              {tank.nominal_capacity_gal && (
+                <div>
+                  <div className="text-sm text-gray-500">Capacity</div>
+                  <div>{tank.nominal_capacity_gal.toLocaleString()} gallons</div>
+                </div>
+              )}
+
+              {tank.install_date && (
+                <div>
+                  <div className="text-sm text-gray-500">Install Date</div>
+                  <div>{new Date(tank.install_date).toLocaleDateString()}</div>
+                </div>
+              )}
+
+              {tank.install_contractor && (
+                <div>
+                  <div className="text-sm text-gray-500">Installed By</div>
+                  <div>{tank.install_contractor}</div>
+                </div>
+              )}
+
+              {tank.install_depth_inches && (
+                <div>
+                  <div className="text-sm text-gray-500">Install Depth</div>
+                  <div>{tank.install_depth_inches}" below grade</div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ATG & Model Info */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-xl font-semibold mb-4">Equipment</h2>
+            <div className="space-y-3">
+              <div>
+                <div className="text-sm text-gray-500">ATG System</div>
+                <div>{tank.atg_brand} {tank.atg_model}</div>
+              </div>
+
+              {tank.atg_last_calibration && (
+                <div>
+                  <div className="text-sm text-gray-500">Last Calibrated</div>
+                  <div>{new Date(tank.atg_last_calibration).toLocaleDateString()}</div>
+                </div>
+              )}
+
+              {tank.manufacturer && (
+                <div>
+                  <div className="text-sm text-gray-500">Tank Manufacturer</div>
+                  <div>{tank.manufacturer} {tank.model_name}</div>
+                </div>
+              )}
+
+              {tank.diameter_ft && (
+                <div>
+                  <div className="text-sm text-gray-500">Diameter</div>
+                  <div>{tank.diameter_ft} feet</div>
+                </div>
+              )}
+
+              {tank.wall_type && (
+                <div>
+                  <div className="text-sm text-gray-500">Wall Type</div>
+                  <div>{tank.wall_type}</div>
+                </div>
+              )}
+
+              {tank.material && (
+                <div>
+                  <div className="text-sm text-gray-500">Material</div>
+                  <div>{tank.material}</div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
+
+        {/* Calibration Chart */}
+        {chart.length > 0 && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
+            <h2 className="text-xl font-semibold mb-4">Calibration Chart</h2>
+            <div className="h-96">
+              <Line data={chartData} options={chartOptions} />
+            </div>
+            {tank.chart_notes && (
+              <div className="mt-4 text-sm text-gray-600">
+                <strong>Notes:</strong> {tank.chart_notes}
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
