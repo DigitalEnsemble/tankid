@@ -41,10 +41,10 @@ export default function Home() {
 
               <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
-                  🔒 Unique Identification
+                  🏢 Facility Management
                 </h3>
                 <p className="text-slate-600 dark:text-slate-300">
-                  Each tank has a unique UUID for secure, reliable tracking
+                  Organize tanks by facility with QR code access to full site overview
                 </p>
               </div>
             </div>
@@ -52,42 +52,42 @@ export default function Home() {
             {/* Demo Section */}
             <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-md">
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">
-                View Tank Profile
+                View Facility Profile
               </h2>
               <p className="text-slate-600 dark:text-slate-300 mb-6">
-                Enter a tank ID to view its calibration data and analytics
+                Enter a facility ID to view all tanks at that location
               </p>
               
               <div className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Enter Tank UUID"
+                  placeholder="Enter Facility UUID"
                   className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
-                  id="tankId"
+                  id="facilityId"
                 />
                 <button
                   onClick={() => {
-                    const input = document.getElementById('tankId') as HTMLInputElement;
-                    const tankId = input?.value.trim();
-                    if (tankId) {
-                      window.location.href = `/tank/${tankId}`;
+                    const input = document.getElementById('facilityId') as HTMLInputElement;
+                    const facilityId = input?.value.trim();
+                    if (facilityId) {
+                      window.location.href = `/facility/${facilityId}`;
                     }
                   }}
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors"
                 >
-                  View Tank Profile
+                  View Facility Profile
                 </button>
               </div>
 
               <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600">
                 <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  Try a sample tank:
+                  Try a sample facility:
                 </p>
                 <Link 
-                  href="/tank/00000000-0000-0000-0000-000000000000"
+                  href="/facility/00000000-0000-0000-0000-000000000000"
                   className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
                 >
-                  View Sample Tank Profile →
+                  View Sample Facility Profile →
                 </Link>
               </div>
             </div>
