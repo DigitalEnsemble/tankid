@@ -219,11 +219,11 @@ app.get('/facility/:id', async (req, res) => {
     if (!fac.rows.length) return res.status(404).json({ error: 'Facility not found' });
 
     const tanks = await pool.query(`
-      SELECT t.*, m.manufacturer, m.model_name, m.capacity_gallons, m.wall_type, m.material
+      SELECT t.*, m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
       LEFT JOIN tank_models m ON m.id = t.model_id
-      WHERE t.facility_id = $1
-      ORDER BY t.tank_number ASC, t.ops_tank_id ASC
+      WHERE t.facility_id = $1 
+      ORDER BY t.tank_number ASC, t.id ASC
     `, [id]);
 
     // Documents will be added later after documents table is created
