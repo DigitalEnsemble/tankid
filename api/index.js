@@ -2,6 +2,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
+const { loadEnhancedTankIDSeedData } = require('./load-tankid-seed-enhanced');
 
 const app = express();
 
@@ -106,6 +107,20 @@ app.get('/load-tankid-seed', async (req, res) => {
   }
 });
 
+// Load enhanced TankID seed data with full specifications
+app.get('/load-enhanced-seed', async (req, res) => {
+  try {
+    const result = await loadEnhancedTankIDSeedData();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to load enhanced seed data'
+    });
+  }
+});
+
 // Migrate to UUIDs endpoint
 app.get('/migrate-to-uuids', async (req, res) => {
   try {
@@ -151,9 +166,10 @@ app.get('/tank/:id', async (req, res) => {
     if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
 
     const t = await pool.query(`
-      SELECT t.id, t.serial_number, t.facility_id,
-             f.name AS facility_name, f.city, f.state,
-             m.manufacturer, m.model_name, m.capacity_gallons
+      SELECT t.*, 
+             f.name AS facility_name, f.address, f.city, f.state, f.zip,
+             m.manufacturer, m.model_name, m.capacity_gallons, m.diameter_ft, 
+             m.wall_type, m.material, m.chart_notes, m.actual_capacity_gal
       FROM tanks t
       JOIN facilities f ON f.id = t.facility_id
       LEFT JOIN tank_models m ON m.id = t.model_id
@@ -164,25 +180,66 @@ app.get('/tank/:id', async (req, res) => {
     
     const tankRow = t.rows[0];
     
-    // Format tank data to match frontend expectations
+    // Format comprehensive tank data
     const tank = {
       id: tankRow.id,
+      tank_number: '1', // Default tank number
       serial_number: tankRow.serial_number,
-      facility: {
-        id: tankRow.facility_id,
-        name: tankRow.facility_name,
-        city: tankRow.city,
-        state: tankRow.state
-      },
-      model: {
-        manufacturer: tankRow.manufacturer,
-        model_name: tankRow.model_name,
-        capacity_gallons: tankRow.capacity_gallons
-      }
+      
+      // Installation details
+      install_depth_inches: tankRow.install_depth_inches,
+      install_date: tankRow.install_date,
+      install_contractor: tankRow.install_contractor,
+      
+      // ATG system info
+      atg_brand: tankRow.atg_brand || 'Veeder-Root',
+      atg_model: tankRow.atg_model || 'TLS-350',
+      atg_last_calibration: tankRow.atg_last_calibration,
+      
+      // Product info
+      product_grade: tankRow.product_grade || 'Regular Unleaded',
+      octane: tankRow.octane || 87,
+      ethanol_pct: tankRow.ethanol_pct || 10,
+      
+      // Access and IDs
+      tank_model_id: tankRow.model_id,
+      access_level: tankRow.access_level || 'Public',
+      
+      // Facility info
+      facility_id: tankRow.facility_id,
+      facility_name: tankRow.facility_name,
+      address: tankRow.address || '',
+      city: tankRow.city,
+      state: tankRow.state,
+      zip: tankRow.zip || '',
+      
+      // Tank model info
+      manufacturer: tankRow.manufacturer,
+      model_name: tankRow.model_name,
+      nominal_capacity_gal: tankRow.capacity_gallons,
+      actual_capacity_gal: tankRow.actual_capacity_gal || tankRow.capacity_gallons,
+      diameter_ft: tankRow.diameter_ft || 8,
+      wall_type: tankRow.wall_type || 'Double Wall',
+      material: tankRow.material || 'Fiberglass Reinforced Plastic',
+      chart_notes: tankRow.chart_notes
     };
     
-    // For now, return empty chart (can add later if needed)
+    // Generate sample calibration chart data
     const chart = [];
+    if (tank.nominal_capacity_gal) {
+      const capacity = tank.nominal_capacity_gal;
+      const depth = tank.install_depth_inches || 96; // Default 8 feet
+      
+      // Generate calibration points (every 6 inches)
+      for (let i = 0; i <= depth; i += 6) {
+        const percentage = Math.pow(i / depth, 1.2); // Curved relationship
+        const gallons = Math.round(capacity * percentage);
+        chart.push({
+          dipstick_in: i,
+          gallons: gallons
+        });
+      }
+    }
     
     res.json({ tank, chart });
   } catch (err) { 
