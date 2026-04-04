@@ -182,9 +182,8 @@ app.get('/tank/:id', async (req, res) => {
 
     const t = await pool.query(`
       SELECT t.*, 
-             f.name AS facility_name, f.address, f.city, f.state, f.zip,
-             m.manufacturer, m.model_name, m.capacity_gallons, m.diameter_ft, 
-             m.wall_type, m.material, m.chart_notes, m.actual_capacity_gal
+             f.name AS facility_name, f.city, f.state,
+             m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
       JOIN facilities f ON f.id = t.facility_id
       LEFT JOIN tank_models m ON m.id = t.model_id
@@ -223,20 +222,18 @@ app.get('/tank/:id', async (req, res) => {
       // Facility info
       facility_id: tankRow.facility_id,
       facility_name: tankRow.facility_name,
-      address: tankRow.address || '',
       city: tankRow.city,
       state: tankRow.state,
-      zip: tankRow.zip || '',
       
       // Tank model info
       manufacturer: tankRow.manufacturer,
       model_name: tankRow.model_name,
       nominal_capacity_gal: tankRow.capacity_gallons,
-      actual_capacity_gal: tankRow.actual_capacity_gal || tankRow.capacity_gallons,
-      diameter_ft: tankRow.diameter_ft || 8,
-      wall_type: tankRow.wall_type || 'Double Wall',
-      material: tankRow.material || 'Fiberglass Reinforced Plastic',
-      chart_notes: tankRow.chart_notes
+      actual_capacity_gal: tankRow.capacity_gallons,
+      diameter_ft: 8,
+      wall_type: 'Double Wall',
+      material: 'Fiberglass Reinforced Plastic',
+      chart_notes: 'Standard unleaded gasoline specification'
     };
     
     // Generate sample calibration chart data
