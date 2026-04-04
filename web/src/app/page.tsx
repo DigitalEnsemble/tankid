@@ -61,7 +61,7 @@ export default function Home() {
               <div className="space-y-4">
                 <input
                   type="text"
-                  placeholder="Enter Facility UUID"
+                  placeholder="Enter Facility ID (e.g. 1)"
                   className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
                   id="facilityId"
                 />
@@ -84,7 +84,7 @@ export default function Home() {
                   Try a sample facility:
                 </p>
                 <Link 
-                  href="/facility/00000000-0000-0000-0000-000000000000"
+                  href="/facility/1"
                   className="text-blue-600 dark:text-blue-400 hover:underline text-sm"
                 >
                   View Sample Facility Profile →
