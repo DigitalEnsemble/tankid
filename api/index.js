@@ -9,6 +9,7 @@ const { loadComprehensiveData } = require('./load-comprehensive-data');
 // Temporarily disabled: migration endpoints
 // const { simpleComprehensiveMigration } = require('./simple-comprehensive-migration');
 // const { loadSimpleComprehensive } = require('./load-simple-comprehensive');
+const { quickFix1643 } = require('./quick-fix-1643');
 
 const app = express();
 
@@ -67,15 +68,21 @@ app.get('/lookup/facility/:id', async (req, res) => {
       const result = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
       facility = result.rows[0];
     } else {
-      // If it's numeric or other format, prefer facilities with tanks
+      // Search for facility by ops_facility_id, name, or other identifiers
       const result = await pool.query(`
         SELECT f.*, COUNT(t.id) as tank_count
         FROM facilities f
         LEFT JOIN tanks t ON t.facility_id = f.id
+        WHERE f.ops_facility_id = $1 
+           OR f.name ILIKE '%' || $1 || '%'
+           OR f.city ILIKE '%' || $1 || '%'
         GROUP BY f.id
-        ORDER BY tank_count DESC, f.created_at ASC
+        ORDER BY 
+          CASE WHEN f.ops_facility_id = $1 THEN 1 ELSE 2 END,
+          tank_count DESC, 
+          f.created_at ASC
         LIMIT 1
-      `);
+      `, [id]);
       facility = result.rows[0];
     }
 
@@ -109,6 +116,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Quick fix for 1643 facility
+app.get('/quick-fix-1643', async (req, res) => {
+  try {
+    const result = await quickFix1643();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to run quick fix for 1643'
     });
   }
 });
