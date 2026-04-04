@@ -10,6 +10,7 @@ const { loadComprehensiveData } = require('./load-comprehensive-data');
 // const { simpleComprehensiveMigration } = require('./simple-comprehensive-migration');
 // const { loadSimpleComprehensive } = require('./load-simple-comprehensive');
 const { quickFix1643 } = require('./quick-fix-1643');
+const { addComprehensiveTanks } = require('./add-comprehensive-tanks');
 
 const app = express();
 
@@ -130,6 +131,20 @@ app.get('/quick-fix-1643', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to run quick fix for 1643'
+    });
+  }
+});
+
+// Add comprehensive tanks to 1643 facility
+app.get('/add-comprehensive-tanks', async (req, res) => {
+  try {
+    const result = await addComprehensiveTanks();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to add comprehensive tanks'
     });
   }
 });
