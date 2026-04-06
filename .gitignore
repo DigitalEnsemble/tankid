@@ -31,3 +31,4 @@ yarn-debug.log*
 
 # Fly.io
 fly.toml
+qr-codes/
