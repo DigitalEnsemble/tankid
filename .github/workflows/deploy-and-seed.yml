@@ -1,8 +1,9 @@
-name: Deploy TankID (v2 Schema Ready)
+name: Deploy TankID (v2 Schema Ready) - DISABLED
 
 on:
-  push:
-    branches: [ main ]
+  # Disabled automatic push trigger due to workflow issues
+  # push:
+  #   branches: [ main ]
   workflow_dispatch:
     inputs:
       load_seed_data:
