@@ -57,6 +57,21 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'tankid-api' });
 });
 
+// Debug endpoint to check environment variables
+app.get('/debug/env', (req, res) => {
+  res.json({
+    r2_config: {
+      endpoint: process.env.R2_ENDPOINT ? '✅ Set' : '❌ Missing',
+      bucket: process.env.R2_BUCKET ? '✅ Set' : '❌ Missing', 
+      access_key: process.env.R2_ACCESS_KEY ? '✅ Set' : '❌ Missing',
+      secret_key: process.env.R2_SECRET_KEY ? '✅ Set' : '❌ Missing'
+    },
+    database_url: process.env.DATABASE_URL ? '✅ Set' : '❌ Missing',
+    doppler_project: process.env.DOPPLER_PROJECT || '❌ Missing',
+    doppler_config: process.env.DOPPLER_CONFIG || '❌ Missing'
+  });
+});
+
 // List all facilities with tank counts (v2 schema)
 app.get('/facilities', async (req, res) => {
   try {
