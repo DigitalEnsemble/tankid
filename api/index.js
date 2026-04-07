@@ -72,6 +72,46 @@ app.get('/debug/env', (req, res) => {
   });
 });
 
+// Test R2 signed URL generation
+app.get('/debug/r2-test/:document_id', async (req, res) => {
+  try {
+    const { document_id } = req.params;
+    
+    // Get document by ID
+    const docResult = await pool.query('SELECT * FROM tank_documents WHERE id = $1', [document_id]);
+    
+    if (docResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Document not found' });
+    }
+    
+    const doc = docResult.rows[0];
+    
+    // Test signed URL generation
+    const signed_url = await generateSignedUrl(doc.r2_key);
+    
+    res.json({
+      document: {
+        id: doc.id,
+        original_filename: doc.original_filename,
+        r2_key: doc.r2_key
+      },
+      signed_url_result: signed_url || 'Failed to generate',
+      r2_config: {
+        endpoint: process.env.R2_ENDPOINT,
+        bucket: process.env.R2_BUCKET,
+        access_key_length: process.env.R2_ACCESS_KEY?.length || 0,
+        secret_key_length: process.env.R2_SECRET_KEY?.length || 0
+      }
+    });
+    
+  } catch (error) {
+    res.status(500).json({
+      error: error.message,
+      stack: error.stack
+    });
+  }
+});
+
 // List all facilities with tank counts (v2 schema)
 app.get('/facilities', async (req, res) => {
   try {
