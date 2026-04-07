@@ -398,35 +398,7 @@ async function generateSignedUrl(r2Key) {
   }
 }
 
-app.get('/facility/:id', async (req, res) => {
-  console.log('Facility route called!');
-  try {
-    const { id } = req.params;
-    if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid facility ID format' });
-
-    const fac = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
-    if (!fac.rows.length) return res.status(404).json({ error: 'Facility not found' });
-
-    const tanks = await pool.query(`
-      SELECT t.*, m.manufacturer, m.model_name, m.capacity_gallons
-      FROM tanks t
-      LEFT JOIN tank_models m ON m.id = t.model_id
-      WHERE t.facility_id = $1
-      ORDER BY t.tank_number ASC, t.id ASC
-    `, [id]);
-
-    // Documents will be added later after documents table is created
-    const facility = {
-      ...fac.rows[0],
-      document_summary: {} // Placeholder for future document counts
-    };
-
-    res.json({ facility, tanks: tanks.rows });
-  } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
+// OLD ROUTE REMOVED - moved to proper location after search routes
 
 // UPDATED: GET /tank/:id - Enhanced with site_location joins
 app.get('/tank/:id', async (req, res) => {
@@ -607,6 +579,56 @@ app.get('/facility/:id/sites', async (req, res) => {
     res.json({ sites });
   } catch (err) {
     console.error('Facility sites error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// UPDATED: GET /facility/:id - Now works with v2 schema (via site_locations)
+app.get('/facility/:id', async (req, res) => {
+  console.log('Facility detail route called!');
+  try {
+    const { id } = req.params;
+    if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid facility ID format' });
+
+    const fac = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
+    if (!fac.rows.length) return res.status(404).json({ error: 'Facility not found' });
+
+    // Get tanks through site_locations (v2 schema)
+    const tanks = await pool.query(`
+      SELECT t.*, m.manufacturer, m.model_name, m.capacity_gallons,
+             sl.site_name, sl.site_code
+      FROM tanks t
+      JOIN site_locations sl ON sl.id = t.site_location_id
+      LEFT JOIN tank_models m ON m.id = t.model_id
+      WHERE sl.facility_id = $1
+      ORDER BY sl.site_name ASC, t.tank_number ASC, t.id ASC
+    `, [id]);
+
+    // Get site locations with tank counts
+    const sites = await pool.query(`
+      SELECT sl.id, sl.site_name, sl.site_code,
+             COUNT(t.id) as tank_count
+      FROM site_locations sl
+      LEFT JOIN tanks t ON t.site_location_id = sl.id
+      WHERE sl.facility_id = $1
+      GROUP BY sl.id, sl.site_name, sl.site_code
+      ORDER BY sl.site_name
+    `, [id]);
+
+    const facility = {
+      ...fac.rows[0],
+      site_locations: sites.rows.map(row => ({
+        id: row.id,
+        site_name: row.site_name,
+        site_code: row.site_code,
+        tank_count: parseInt(row.tank_count)
+      })),
+      total_tank_count: tanks.rows.length
+    };
+
+    res.json({ facility, tanks: tanks.rows });
+  } catch (err) {
+    console.error(err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
