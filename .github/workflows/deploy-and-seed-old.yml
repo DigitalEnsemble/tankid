@@ -1,8 +1,9 @@
-name: Deploy TankID and Load Seed Data
+name: Deploy TankID and Load Seed Data - DISABLED OLD VERSION
 
 on:
-  push:
-    branches: [ main ]
+  # DISABLED - This is the broken version with jq/json issues
+  # push:
+  #   branches: [ main ]
   workflow_dispatch:
     inputs:
       load_seed_data:
