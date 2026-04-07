@@ -664,11 +664,11 @@ app.get('/tank/:id/documents', async (req, res) => {
     const { id } = req.params;
     if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
 
-    // Query for documents related to this tank
+    // Query for documents related to this tank (R2 migration compatible)
     const documentsResult = await pool.query(`
       SELECT 
         id, original_filename, doc_type, description, 
-        r2_key, file_size, created_at
+        file_path, file_size, created_at
       FROM tank_documents 
       WHERE $1 = ANY(linked_tanks)
       ORDER BY doc_type, original_filename
@@ -680,20 +680,10 @@ app.get('/tank/:id/documents', async (req, res) => {
       let signed_url = null;
       let expires_at = null;
 
-      if (doc.r2_key && process.env.R2_BUCKET) {
-        try {
-          // Generate signed URL with 15-minute expiry
-          const command = new GetObjectCommand({
-            Bucket: process.env.R2_BUCKET,
-            Key: doc.r2_key,
-          });
-          
-          signed_url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
-          expires_at = new Date(Date.now() + 900 * 1000).toISOString();
-        } catch (error) {
-          console.error('Error generating signed URL for', doc.r2_key, ':', error.message);
-          // Continue without signed URL if there's an error
-        }
+      // Use legacy file_path for now (R2 will be added in Phase 2)
+      if (doc.file_path) {
+        signed_url = `https://tankid-api.fly.dev${doc.file_path}`;
+        expires_at = null; // Legacy URLs don't expire
       }
 
       documents.push({
@@ -745,11 +735,19 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     // Add signed URLs to legacy endpoint as well
     const documents = [];
     for (const doc of result.rows) {
-      const signed_url = await generateSignedUrl(doc.r2_key);
+      let signed_url = null;
+      let expires_at = null;
+      
+      // Use legacy file_path for now (R2 will be added in Phase 2)
+      if (doc.file_path) {
+        signed_url = `https://tankid-api.fly.dev${doc.file_path}`;
+        expires_at = null;
+      }
+      
       documents.push({
         ...doc,
         signed_url,
-        expires_at: signed_url ? new Date(Date.now() + 900 * 1000).toISOString() : null
+        expires_at
       });
     }
     
