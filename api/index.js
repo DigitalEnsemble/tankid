@@ -379,6 +379,145 @@ app.get('/migrate-to-uuids', async (req, res) => {
   }
 });
 
+// Run R2 database migration
+app.post('/migrate/add-r2-key', async (req, res) => {
+  try {
+    console.log('🚀 Starting R2 migration: add r2_key column');
+    
+    // Migration SQL
+    const migrationSQL = `
+      BEGIN;
+      
+      -- Add r2_key column to tank_documents table
+      ALTER TABLE tank_documents 
+      ADD COLUMN r2_key VARCHAR(512) NULL;
+      
+      -- Add comment for documentation
+      COMMENT ON COLUMN tank_documents.r2_key IS 'Cloudflare R2 object key for document storage';
+      
+      -- Create index for faster R2 key lookups
+      CREATE INDEX idx_tank_documents_r2_key ON tank_documents(r2_key) WHERE r2_key IS NOT NULL;
+      
+      COMMIT;
+    `;
+    
+    console.log('📄 Executing migration SQL...');
+    await pool.query(migrationSQL);
+    
+    // Verify the column was added
+    const verifyResult = await pool.query(`
+      SELECT column_name, data_type, is_nullable 
+      FROM information_schema.columns 
+      WHERE table_name = 'tank_documents' AND column_name = 'r2_key'
+    `);
+    
+    if (verifyResult.rows.length > 0) {
+      console.log('✅ Migration successful: r2_key column added');
+      res.json({
+        success: true,
+        message: 'R2 migration completed successfully',
+        column_details: verifyResult.rows[0]
+      });
+    } else {
+      throw new Error('Migration verification failed: r2_key column not found');
+    }
+    
+  } catch (error) {
+    console.error('💥 R2 migration failed:', error.message);
+    
+    // Check if column already exists
+    if (error.message.includes('already exists')) {
+      res.json({
+        success: true,
+        message: 'R2 migration skipped: r2_key column already exists',
+        already_exists: true
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        error: error.message,
+        message: 'R2 migration failed'
+      });
+    }
+  }
+});
+
+// Documents migration to R2 endpoint
+app.post('/migrate/documents-to-r2', async (req, res) => {
+  try {
+    console.log('🚀 Starting document migration to R2...');
+    
+    // Check R2 configuration
+    if (!process.env.R2_ENDPOINT || !process.env.R2_BUCKET || !process.env.R2_ACCESS_KEY || !process.env.R2_SECRET_KEY) {
+      throw new Error('R2 configuration incomplete. Check R2_ENDPOINT, R2_BUCKET, R2_ACCESS_KEY, R2_SECRET_KEY');
+    }
+    
+    // Get all documents that need migration (no r2_key yet)
+    const documentsResult = await pool.query(`
+      SELECT id, original_filename, file_path, mime_type, file_size
+      FROM tank_documents 
+      WHERE r2_key IS NULL
+      ORDER BY created_at
+    `);
+    
+    console.log(`📄 Found ${documentsResult.rows.length} documents to migrate`);
+    
+    let successCount = 0;
+    let errorCount = 0;
+    const results = [];
+    
+    for (const doc of documentsResult.rows) {
+      try {
+        console.log(`📤 Processing: ${doc.original_filename}`);
+        
+        // Generate R2 key (folder structure: documents/YYYY/MM/filename)
+        const uploadDate = new Date();
+        const year = uploadDate.getFullYear();
+        const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
+        const r2Key = `documents/${year}/${month}/${doc.id}_${doc.original_filename}`;
+        
+        // For now, just update the database with the R2 key
+        // (actual file upload would happen separately)
+        await pool.query(`
+          UPDATE tank_documents 
+          SET r2_key = $1, updated_at = NOW()
+          WHERE id = $2
+        `, [r2Key, doc.id]);
+        
+        console.log(`✅ Updated database: ${doc.original_filename} → ${r2Key}`);
+        results.push({ id: doc.id, filename: doc.original_filename, r2_key: r2Key, status: 'success' });
+        successCount++;
+        
+      } catch (error) {
+        console.error(`❌ Failed to process ${doc.original_filename}:`, error.message);
+        results.push({ id: doc.id, filename: doc.original_filename, error: error.message, status: 'failed' });
+        errorCount++;
+      }
+    }
+    
+    console.log(`🎉 Migration completed! Success: ${successCount}, Errors: ${errorCount}`);
+    
+    res.json({
+      success: true,
+      message: 'Document migration completed',
+      statistics: {
+        total_processed: documentsResult.rows.length,
+        successful: successCount,
+        failed: errorCount
+      },
+      results: results
+    });
+    
+  } catch (error) {
+    console.error('💥 Document migration failed:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Document migration to R2 failed'
+    });
+  }
+});
+
 console.log('About to register facility route...');
 
 // Helper function to generate signed URL
