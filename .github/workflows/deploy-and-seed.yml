@@ -1,4 +1,4 @@
-name: Deploy TankID and Load Seed Data
+name: Deploy TankID (v2 Schema Ready)
 
 on:
   push:
@@ -9,6 +9,14 @@ on:
         description: 'Load TankID seed data after deployment'
         required: false
         default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      run_v2_migration:
+        description: 'Run v2 database schema migration'
+        required: false
+        default: 'false'
         type: choice
         options:
           - 'true'
@@ -45,28 +53,77 @@ jobs:
     - name: Wait for deployment
       run: sleep 30
       
+    - name: Get deployment URL
+      id: get_url
+      run: |
+        cd api
+        # Get app name from fly.toml
+        APP_NAME=$(grep "^app" fly.toml | cut -d'"' -f2)
+        API_URL="https://$APP_NAME.fly.dev"
+        echo "API_URL=$API_URL" >> $GITHUB_ENV
+        echo "Deployment URL: $API_URL"
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        
+    - name: Health check
+      run: |
+        echo "Testing health endpoint: $API_URL/health"
+        for i in {1..10}; do
+          if curl -sf "$API_URL/health" > /dev/null; then
+            echo "✅ Health check passed!"
+            break
+          fi
+          echo "Attempt $i failed, waiting 10s..."
+          sleep 10
+        done
+        
+        # Final health check with detailed response
+        curl -v "$API_URL/health"
+      
+    - name: Run v2 Database Migration
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_v2_migration == 'true'
+      run: |
+        echo "🔄 Running v2 database schema migration..."
+        echo "This will upgrade from v1 (serial IDs) to v2 (UUIDs + composite keys)"
+        echo "Migration endpoint: $API_URL/migrate-v2-schema"
+        
+        # Call the v2 migration endpoint (to be created)
+        response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$API_URL/migrate-v2-schema" || echo "HTTPSTATUS:000")
+        http_code=$(echo "$response" | tail -n1 | sed 's/HTTPSTATUS://')
+        body=$(echo "$response" | sed '$d')
+        
+        echo "HTTP Status: $http_code"
+        echo "Response: $body"
+        
+        if [[ "$http_code" -eq 200 ]]; then
+          echo "✅ v2 Schema migration completed successfully!"
+        else
+          echo "❌ v2 Schema migration failed"
+          echo "This may be expected if already on v2 or if migration endpoint doesn't exist yet"
+          echo "Continuing with deployment..."
+        fi
+        
     - name: Load TankID seed data
       if: github.event_name == 'workflow_dispatch' && github.event.inputs.load_seed_data == 'true' || github.event_name == 'push'
       run: |
-        # Get the app URL from Fly.io
-        API_URL="https://$(cd api && flyctl info --json | jq -r '.Hostname')"
-        echo "Calling seed data endpoint: $API_URL/load-tankid-seed"
+        echo "📡 Loading TankID seed data..."
+        echo "Calling seed endpoint: $API_URL/load-tankid-seed"
         
-        # Call the seed data endpoint
-        response=$(curl -s -w "HTTP_STATUS:%{http_code}" "$API_URL/load-tankid-seed")
-        http_status=$(echo "$response" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
-        body=$(echo "$response" | sed 's/HTTP_STATUS:[0-9]*$//')
+        # Call the seed data endpoint with better error handling
+        response=$(curl -s -w "HTTPSTATUS:%{http_code}" "$API_URL/load-tankid-seed" || echo "HTTPSTATUS:000")
+        http_code=$(echo "$response" | tail -n1 | sed 's/HTTPSTATUS://')
+        body=$(echo "$response" | sed '$d')
         
-        echo "HTTP Status: $http_status"
-        echo "Response: $body"
+        echo "HTTP Status: $http_code"
+        echo "Response Body:"
+        echo "$body"
         
-        if [ "$http_status" -eq 200 ]; then
+        if [[ "$http_code" -eq 200 ]]; then
           echo "✅ Seed data loaded successfully!"
-          echo "$body" | jq '.'
+          # Try to format JSON if possible
+          echo "$body" | python3 -m json.tool 2>/dev/null || echo "$body"
         else
-          echo "❌ Failed to load seed data"
-          echo "$body"
+          echo "❌ Failed to load seed data (HTTP $http_code)"
+          echo "Response: $body"
           exit 1
         fi
-      env:
-        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

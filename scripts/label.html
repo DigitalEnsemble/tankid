@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankID QR Label - Facility 1643</title>
+    <style>
+        @page {
+            size: 3in 3in;
+            margin: 0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            width: 3in;
+            height: 3in;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            background: white;
+        }
+        
+        .qr-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .qr-code {
+            width: 2.5in;
+            height: 2.5in;
+            border: none;
+        }
+        
+        .url-text {
+            font-size: 9pt;
+            color: #333;
+            letter-spacing: 0.5px;
+            font-weight: normal;
+            text-align: center;
+        }
+        
+        @media print {
+            body {
+                -webkit-print-color-adjust: exact;
+                color-adjust: exact;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="qr-container">
+        <img src="../qr-codes/facility-1643.png" alt="QR Code for TankID Facility 1643" class="qr-code">
+        <div class="url-text">tankid.io</div>
+    </div>
+</body>
+</html>

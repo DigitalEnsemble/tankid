@@ -1,0 +1,72 @@
+name: Deploy TankID and Load Seed Data
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+    inputs:
+      load_seed_data:
+        description: 'Load TankID seed data after deployment'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: |
+        cd api
+        npm ci
+        
+    - name: Setup Fly CLI
+      uses: superfly/flyctl-actions/setup-flyctl@master
+      
+    - name: Deploy API to Fly.io
+      run: |
+        cd api
+        flyctl deploy --remote-only
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        
+    - name: Wait for deployment
+      run: sleep 30
+      
+    - name: Load TankID seed data
+      if: github.event_name == 'workflow_dispatch' && github.event.inputs.load_seed_data == 'true' || github.event_name == 'push'
+      run: |
+        # Get the app URL from Fly.io
+        API_URL="https://$(cd api && flyctl info --json | jq -r '.Hostname')"
+        echo "Calling seed data endpoint: $API_URL/load-tankid-seed"
+        
+        # Call the seed data endpoint
+        response=$(curl -s -w "HTTP_STATUS:%{http_code}" "$API_URL/load-tankid-seed")
+        http_status=$(echo "$response" | grep -o "HTTP_STATUS:[0-9]*" | cut -d: -f2)
+        body=$(echo "$response" | sed 's/HTTP_STATUS:[0-9]*$//')
+        
+        echo "HTTP Status: $http_status"
+        echo "Response: $body"
+        
+        if [ "$http_status" -eq 200 ]; then
+          echo "✅ Seed data loaded successfully!"
+          echo "$body" | jq '.'
+        else
+          echo "❌ Failed to load seed data"
+          echo "$body"
+          exit 1
+        fi
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

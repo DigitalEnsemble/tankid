@@ -17,6 +17,7 @@ const { simpleUploadDocs } = require('./simple-upload-docs');
 const { createDocRecords } = require('./create-doc-records');
 const { checkDocsTable } = require('./check-docs-table');
 const { createTankDocs } = require('./create-tank-docs');
+const { migrateToV2Schema } = require('./migrate-v2-schema');
 
 const app = express();
 
@@ -126,6 +127,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Migrate to v2 schema endpoint
+app.get('/migrate-v2-schema', async (req, res) => {
+  try {
+    const result = await migrateToV2Schema();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to migrate to v2 schema'
     });
   }
 });
