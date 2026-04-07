@@ -20,6 +20,7 @@ const { createTankDocs } = require('./create-tank-docs');
 const { migrateToV2Schema } = require('./migrate-v2-schema');
 const { checkSchemaState } = require('./check-schema');
 const { completeV2Migration } = require('./complete-v2-migration');
+const { debugSchemaDetails } = require('./debug-schema');
 
 const app = express();
 
@@ -129,6 +130,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Debug detailed schema structures  
+app.get('/debug-schema', async (req, res) => {
+  try {
+    const result = await debugSchemaDetails();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to debug schema'
     });
   }
 });
