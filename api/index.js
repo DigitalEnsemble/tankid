@@ -1,6 +1,8 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
+const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
 const { loadEnhancedTankIDSeedData } = require('./load-tankid-seed-enhanced');
@@ -37,6 +39,16 @@ app.use((req, res, next) => {
 });
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// R2/S3 client configuration
+const s3Client = new S3Client({
+  region: 'auto',
+  endpoint: process.env.R2_ENDPOINT,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY,
+    secretAccessKey: process.env.R2_SECRET_KEY,
+  },
+});
 
 // Serve static documents
 app.use('/documents', express.static(path.join(__dirname, 'public', 'documents')));
@@ -369,6 +381,23 @@ app.get('/migrate-to-uuids', async (req, res) => {
 
 console.log('About to register facility route...');
 
+// Helper function to generate signed URL
+async function generateSignedUrl(r2Key) {
+  if (!r2Key || !process.env.R2_BUCKET) return null;
+  
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET,
+      Key: r2Key,
+    });
+    
+    return await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+  } catch (error) {
+    console.error('Error generating signed URL for', r2Key, ':', error.message);
+    return null;
+  }
+}
+
 app.get('/facility/:id', async (req, res) => {
   console.log('Facility route called!');
   try {
@@ -399,6 +428,7 @@ app.get('/facility/:id', async (req, res) => {
   }
 });
 
+// UPDATED: GET /tank/:id - Enhanced with site_location joins
 app.get('/tank/:id', async (req, res) => {
   try {
     const { id } = req.params;
@@ -406,11 +436,13 @@ app.get('/tank/:id', async (req, res) => {
 
     const t = await pool.query(`
       SELECT t.*, 
+             sl.site_name, sl.site_code,
              f.name AS facility_name, f.city, f.state,
-             f.ops_facility_id,
+             f.state_code, f.state_facility_id, f.client_facility_id, f.installer_facility_id,
              m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
-      JOIN facilities f ON f.id = t.facility_id
+      JOIN site_locations sl ON sl.id = t.site_location_id
+      JOIN facilities f ON f.id = sl.facility_id
       LEFT JOIN tank_models m ON m.id = t.model_id
       WHERE t.id = $1
     `, [id]);
@@ -419,19 +451,30 @@ app.get('/tank/:id', async (req, res) => {
 
     const tankRow = t.rows[0];
 
-    // Format comprehensive tank data
+    // Format comprehensive tank data with site location context
     const tank = {
       id: tankRow.id,
       tank_number: tankRow.tank_number || '1',
-      ops_tank_id: tankRow.ops_tank_id,
+      state_tank_id: tankRow.state_tank_id,
+      facility_tank_id: tankRow.facility_tank_id,
+      installer_tank_id: tankRow.installer_tank_id,
       serial_number: tankRow.serial_number,
       fireguard_label: tankRow.fireguard_label,
 
+      // Site location context
+      site_location_id: tankRow.site_location_id,
+      site_name: tankRow.site_name,
+      site_code: tankRow.site_code,
+
+      // Tank type specific fields
+      tank_type: tankRow.tank_type || 'AST',
+      installed_depth_inches: tankRow.tank_type === 'UST' ? tankRow.installed_depth_inches : null,
+
       // Installation details
-      install_depth_inches: tankRow.install_depth_inches,
       install_date: tankRow.install_date,
       initial_work_date: tankRow.initial_work_date,
       install_contractor: tankRow.install_contractor,
+      last_inspection_date: tankRow.last_inspection_date,
 
       // ATG system info
       atg_brand: tankRow.atg_brand || 'Veeder-Root',
@@ -443,81 +486,211 @@ app.get('/tank/:id', async (req, res) => {
       octane: tankRow.octane || 87,
       ethanol_pct: tankRow.ethanol_pct || 10,
 
-      // Compliance and warranty (hardcoded for now)
-      tank_release_detection: 'T11: Monthly Visual Inspection',
-      piping_release_detection: 'L11: Monthly Visual Inspection',
-      tank_corrosion_protection: 'AST - N/A - Tank',
-      piping_corrosion_protection: 'AST - N/A - Piping',
-      sti_warranted_date: tankRow.serial_number !== 'Unknown' ? tankRow.install_date : null,
-      warranty_validated_date: tankRow.serial_number !== 'Unknown' ? tankRow.install_date : null,
-      warranty_validated_by: tankRow.serial_number !== 'Unknown' ? 'Generic Installer Contact, UST Installer Inc.' : null,
-
-      // Access and IDs
-      tank_model_id: tankRow.model_id,
-      access_level: tankRow.access_level || 'Public',
-
-      // Facility info
+      // Facility context
       facility_id: tankRow.facility_id,
       facility_name: tankRow.facility_name,
-      facility_type: 'airport',
-      facility_owner: 'Generic Aviation Department',
-      ops_facility_id: tankRow.ops_facility_id,
-      address: '12345 Facility Drive',
+      state_code: tankRow.state_code,
+      state_facility_id: tankRow.state_facility_id,
+      client_facility_id: tankRow.client_facility_id,
+      installer_facility_id: tankRow.installer_facility_id,
       city: tankRow.city,
       state: tankRow.state,
-      zip: '80200',
 
       // Tank model info
       manufacturer: tankRow.manufacturer,
       model_name: tankRow.model_name,
       nominal_capacity_gal: tankRow.capacity_gallons,
-      actual_capacity_gal: tankRow.capacity_gallons,
-      diameter_ft: null, // Request from manufacturer
-      wall_type: 'double',
-      material: 'steel',
-      chart_notes: 'Fireguard STI-P3 listed double-wall aboveground tank'
+      actual_capacity_gal: tankRow.capacity_gallons
     };
 
-    // Generate sample calibration chart data
-    const chart = [];
-    if (tank.nominal_capacity_gal) {
-      const capacity = tank.nominal_capacity_gal;
-      const depth = tank.install_depth_inches || 96; // Default 8 feet
-
-      // Generate calibration points (every 6 inches)
-      for (let i = 0; i <= depth; i += 6) {
-        const percentage = Math.pow(i / depth, 1.2); // Curved relationship
-        const gallons = Math.round(capacity * percentage);
-        chart.push({
-          dipstick_in: i,
-          gallons: gallons
-        });
-      }
-    }
-
-    // Query for documents related to this tank
-    const documentsResult = await pool.query(`
-      SELECT 
-        id, original_filename, doc_type, description, 
-        file_path, file_size, created_at
-      FROM tank_documents 
-      WHERE $1 = ANY(linked_tanks)
-      ORDER BY doc_type, original_filename
-    `, [id]);
-    
-    const documents = documentsResult.rows.map(doc => ({
-      ...doc,
-      download_url: `https://tankid-api.fly.dev${doc.file_path}`
-    }));
-
-    res.json({ tank, chart, documents });
+    res.json({ tank });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
 
-// Get documents for a facility or tank
+// NEW: GET /facility/search - Search by state + facility number
+app.get('/facility/search', async (req, res) => {
+  try {
+    const { state, q } = req.query;
+    
+    if (!state) {
+      return res.status(400).json({ error: 'State parameter is required' });
+    }
+
+    if (!q) {
+      return res.status(400).json({ error: 'Query parameter q (facility number) is required' });
+    }
+
+    // Search across all three facility ID columns
+    const result = await pool.query(`
+      SELECT f.*
+      FROM facilities f
+      WHERE f.state_code = $1 
+        AND (f.state_facility_id = $2 
+             OR f.client_facility_id = $2 
+             OR f.installer_facility_id = $2)
+      LIMIT 1
+    `, [state.toUpperCase(), q]);
+
+    if (!result.rows.length) {
+      return res.status(404).json({ 
+        error: `Not found in ${state.toUpperCase()}. Try a different state or check the facility number.`
+      });
+    }
+
+    const facility = result.rows[0];
+
+    // Get site locations with tank counts
+    const sitesResult = await pool.query(`
+      SELECT sl.id, sl.site_name, sl.site_code,
+             COUNT(t.id) as tank_count
+      FROM site_locations sl
+      LEFT JOIN tanks t ON t.site_location_id = sl.id
+      WHERE sl.facility_id = $1
+      GROUP BY sl.id, sl.site_name, sl.site_code
+      ORDER BY sl.site_name
+    `, [facility.id]);
+
+    const site_locations = sitesResult.rows.map(row => ({
+      id: row.id,
+      site_name: row.site_name,
+      site_code: row.site_code,
+      tank_count: parseInt(row.tank_count)
+    }));
+
+    res.json({ 
+      facility: {
+        id: facility.id,
+        name: facility.name,
+        state_code: facility.state_code,
+        state_facility_id: facility.state_facility_id,
+        client_facility_id: facility.client_facility_id,
+        installer_facility_id: facility.installer_facility_id,
+        address: facility.address,
+        city: facility.city,
+        state: facility.state,
+        zip: facility.zip
+      },
+      site_locations
+    });
+  } catch (err) {
+    console.error('Facility search error:', err.message);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// NEW: GET /facility/:id/sites - Get all site locations for a facility
+app.get('/facility/:id/sites', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid facility ID format' });
+
+    const result = await pool.query(`
+      SELECT sl.id, sl.site_name, sl.site_code,
+             COUNT(t.id) as tank_count
+      FROM site_locations sl
+      LEFT JOIN tanks t ON t.site_location_id = sl.id
+      WHERE sl.facility_id = $1
+      GROUP BY sl.id, sl.site_name, sl.site_code
+      ORDER BY sl.site_name
+    `, [id]);
+
+    const sites = result.rows.map(row => ({
+      id: row.id,
+      site_name: row.site_name,
+      site_code: row.site_code,
+      tank_count: parseInt(row.tank_count)
+    }));
+
+    res.json({ sites });
+  } catch (err) {
+    console.error('Facility sites error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// NEW: GET /site/:id/tanks - Get all tanks for a site location
+app.get('/site/:id/tanks', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid site ID format' });
+
+    const result = await pool.query(`
+      SELECT t.id, t.tank_number, t.state_tank_id, t.facility_tank_id, t.installer_tank_id,
+             t.product_grade, t.serial_number,
+             m.manufacturer, m.model_name, m.capacity_gallons
+      FROM tanks t
+      LEFT JOIN tank_models m ON m.id = t.model_id
+      WHERE t.site_location_id = $1
+      ORDER BY t.tank_number ASC, t.id ASC
+    `, [id]);
+
+    const tanks = result.rows;
+
+    res.json({ tanks });
+  } catch (err) {
+    console.error('Site tanks error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// UPDATED: GET /tank/:id/documents - Return document metadata with signed URLs
+app.get('/tank/:id/documents', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
+
+    // Query for documents related to this tank
+    const documentsResult = await pool.query(`
+      SELECT 
+        id, original_filename, doc_type, description, 
+        r2_key, file_size, created_at
+      FROM tank_documents 
+      WHERE $1 = ANY(linked_tanks)
+      ORDER BY doc_type, original_filename
+    `, [id]);
+
+    const documents = [];
+    
+    for (const doc of documentsResult.rows) {
+      let signed_url = null;
+      let expires_at = null;
+
+      if (doc.r2_key && process.env.R2_BUCKET) {
+        try {
+          // Generate signed URL with 15-minute expiry
+          const command = new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET,
+            Key: doc.r2_key,
+          });
+          
+          signed_url = await getSignedUrl(s3Client, command, { expiresIn: 900 }); // 15 minutes
+          expires_at = new Date(Date.now() + 900 * 1000).toISOString();
+        } catch (error) {
+          console.error('Error generating signed URL for', doc.r2_key, ':', error.message);
+          // Continue without signed URL if there's an error
+        }
+      }
+
+      documents.push({
+        id: doc.id,
+        doc_type: doc.doc_type,
+        original_filename: doc.original_filename,
+        signed_url,
+        expires_at
+      });
+    }
+
+    res.json({ documents });
+  } catch (err) {
+    console.error('Tank documents error:', err.message);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// LEGACY: Keep existing documents endpoint for backward compatibility
 app.get('/documents/:entityType/:entityId', async (req, res) => {
   try {
     const { entityType, entityId } = req.params;
@@ -525,12 +698,11 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     let query, params;
 
     if (entityType === 'facility') {
-      // Get documents for facility (by ops_facility_id)
+      // Get documents for facility 
       query = `
         SELECT d.*
         FROM tank_documents d
-        JOIN facilities f ON d.facility_id = f.id
-        WHERE f.ops_facility_id = $1
+        WHERE d.facility_id = $1
         ORDER BY d.doc_type, d.original_filename
       `;
       params = [entityId];
@@ -547,7 +719,19 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     }
 
     const result = await pool.query(query, params);
-    res.json({ documents: result.rows });
+    
+    // Add signed URLs to legacy endpoint as well
+    const documents = [];
+    for (const doc of result.rows) {
+      const signed_url = await generateSignedUrl(doc.r2_key);
+      documents.push({
+        ...doc,
+        signed_url,
+        expires_at: signed_url ? new Date(Date.now() + 900 * 1000).toISOString() : null
+      });
+    }
+    
+    res.json({ documents });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Internal server error' });
@@ -557,4 +741,10 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`TankID API running on port ${PORT}`);
+  console.log('R2 Configuration:', {
+    endpoint: process.env.R2_ENDPOINT ? '✓ Set' : '✗ Missing',
+    bucket: process.env.R2_BUCKET ? '✓ Set' : '✗ Missing',
+    accessKey: process.env.R2_ACCESS_KEY ? '✓ Set' : '✗ Missing',
+    secretKey: process.env.R2_SECRET_KEY ? '✓ Set' : '✗ Missing'
+  });
 });
