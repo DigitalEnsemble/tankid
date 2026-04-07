@@ -239,8 +239,11 @@ async function completeV2Migration() {
         ON tanks(site_location_id);
       CREATE INDEX IF NOT EXISTS idx_tanks_type
         ON tanks(tank_type);
-      CREATE INDEX IF NOT EXISTS idx_tank_documents_tank
-        ON tank_documents(tank_id);
+      -- tank_documents uses linked_tanks array, not tank_id
+      CREATE INDEX IF NOT EXISTS idx_tank_documents_facility
+        ON tank_documents(facility_id);
+      CREATE INDEX IF NOT EXISTS idx_tank_documents_linked_tanks
+        ON tank_documents USING gin(linked_tanks);
     `);
     
     // Step 7: Clean up old facility_id column from tanks if it exists
