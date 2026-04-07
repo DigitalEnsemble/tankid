@@ -45,20 +45,24 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', service: 'tankid-api' });
 });
 
-// List all facilities with tank counts
+// List all facilities with tank counts (v2 schema)
 app.get('/facilities', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT f.*, COUNT(t.id) as tank_count
       FROM facilities f
-      LEFT JOIN tanks t ON t.facility_id = f.id
+      LEFT JOIN site_locations sl ON sl.facility_id = f.id
+      LEFT JOIN tanks t ON t.site_location_id = sl.id
       GROUP BY f.id
       ORDER BY tank_count DESC, f.name ASC
     `);
 
     const facilities = result.rows.map(row => ({
       id: row.id,
+      state_code: row.state_code,
+      state_facility_id: row.state_facility_id,
       name: row.name,
+      address: row.address,
       city: row.city,
       state: row.state,
       tank_count: parseInt(row.tank_count)
@@ -66,8 +70,8 @@ app.get('/facilities', async (req, res) => {
 
     res.json({ facilities });
   } catch (err) {
-    console.error(err.message);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error('Facilities API error:', err.message);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
 
@@ -82,17 +86,19 @@ app.get('/lookup/facility/:id', async (req, res) => {
       const result = await pool.query('SELECT * FROM facilities WHERE id = $1', [id]);
       facility = result.rows[0];
     } else {
-      // Search for facility by ops_facility_id, name, or other identifiers
+      // Search for facility by ops_facility_id, name, or other identifiers (v2 schema)
       const result = await pool.query(`
         SELECT f.*, COUNT(t.id) as tank_count
         FROM facilities f
-        LEFT JOIN tanks t ON t.facility_id = f.id
+        LEFT JOIN site_locations sl ON sl.facility_id = f.id
+        LEFT JOIN tanks t ON t.site_location_id = sl.id
         WHERE f.ops_facility_id = $1
+           OR f.state_facility_id = $1
            OR f.name ILIKE '%' || $1 || '%'
            OR f.city ILIKE '%' || $1 || '%'
         GROUP BY f.id
         ORDER BY
-          CASE WHEN f.ops_facility_id = $1 THEN 1 ELSE 2 END,
+          CASE WHEN f.ops_facility_id = $1 OR f.state_facility_id = $1 THEN 1 ELSE 2 END,
           tank_count DESC,
           f.created_at ASC
         LIMIT 1
