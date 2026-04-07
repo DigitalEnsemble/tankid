@@ -457,6 +457,30 @@ app.post('/migrate/add-r2-key', async (req, res) => {
   }
 });
 
+// Upload documents to R2 endpoint  
+app.post('/migrate/upload-to-r2', async (req, res) => {
+  try {
+    console.log('🚀 Starting file upload to R2...');
+    
+    const { uploadDocumentsToR2 } = require('./upload_to_r2');
+    const result = await uploadDocumentsToR2();
+    
+    res.json({
+      success: true,
+      message: 'Document upload to R2 completed',
+      ...result
+    });
+    
+  } catch (error) {
+    console.error('💥 Document upload to R2 failed:', error.message);
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Document upload to R2 failed'
+    });
+  }
+});
+
 // Documents migration to R2 endpoint
 app.post('/migrate/documents-to-r2', async (req, res) => {
   try {
