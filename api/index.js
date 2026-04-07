@@ -19,6 +19,7 @@ const { checkDocsTable } = require('./check-docs-table');
 const { createTankDocs } = require('./create-tank-docs');
 const { migrateToV2Schema } = require('./migrate-v2-schema');
 const { checkSchemaState } = require('./check-schema');
+const { completeV2Migration } = require('./complete-v2-migration');
 
 const app = express();
 
@@ -146,7 +147,21 @@ app.get('/check-schema', async (req, res) => {
   }
 });
 
-// Migrate to v2 schema endpoint
+// Complete partial v2 migration (recovery)
+app.get('/complete-v2-migration', async (req, res) => {
+  try {
+    const result = await completeV2Migration();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to complete v2 migration'
+    });
+  }
+});
+
+// Migrate to v2 schema endpoint (full migration from v1)
 app.get('/migrate-v2-schema', async (req, res) => {
   try {
     const result = await migrateToV2Schema();
