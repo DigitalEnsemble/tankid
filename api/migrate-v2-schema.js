@@ -189,7 +189,7 @@ CREATE TABLE site_locations (
 CREATE TABLE tanks (
   id                    UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
   site_location_id      UUID          NOT NULL REFERENCES site_locations(id),
-  tank_model_id         UUID          REFERENCES tank_models(id),
+  tank_model_id         UUID,  -- Will add foreign key constraint later
   tank_type             VARCHAR(10)   NOT NULL CHECK (tank_type IN ('AST','UST')),
   tank_subtype          VARCHAR(30)   CHECK (tank_subtype IN ('fuel_storage','death_tank','oil_water_separator')),
   state_tank_id         VARCHAR(50),
@@ -236,7 +236,7 @@ $$;
 
 CREATE TABLE tank_chart_readings (
   id              UUID          PRIMARY KEY DEFAULT uuid_generate_v4(),
-  tank_model_id   UUID          NOT NULL REFERENCES tank_models(uuid_id),
+  tank_model_id   UUID          NOT NULL,  -- Will add foreign key constraint later
   height_inches   DECIMAL(10,2) NOT NULL,
   volume_gallons  INTEGER       NOT NULL,
   created_at      TIMESTAMPTZ   DEFAULT NOW()
@@ -407,6 +407,12 @@ BEGIN
       ALTER TABLE tank_models DROP COLUMN IF EXISTS id CASCADE;
       ALTER TABLE tank_models RENAME COLUMN uuid_id TO id;
       ALTER TABLE tank_models ADD PRIMARY KEY (id);
+      
+      -- Now add the foreign key constraints 
+      ALTER TABLE tanks ADD CONSTRAINT fk_tanks_model 
+        FOREIGN KEY (tank_model_id) REFERENCES tank_models(id);
+      ALTER TABLE tank_chart_readings ADD CONSTRAINT fk_chart_model
+        FOREIGN KEY (tank_model_id) REFERENCES tank_models(id);
     END IF;
   END IF;
 END
