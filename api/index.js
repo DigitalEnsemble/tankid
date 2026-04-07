@@ -44,6 +44,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const s3Client = new S3Client({
   region: 'auto',
   endpoint: process.env.R2_ENDPOINT,
+  forcePathStyle: true, // Use path-style URLs for R2 compatibility
   credentials: {
     accessKeyId: process.env.R2_ACCESS_KEY,
     secretAccessKey: process.env.R2_SECRET_KEY,
