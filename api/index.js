@@ -18,6 +18,7 @@ const { createDocRecords } = require('./create-doc-records');
 const { checkDocsTable } = require('./check-docs-table');
 const { createTankDocs } = require('./create-tank-docs');
 const { migrateToV2Schema } = require('./migrate-v2-schema');
+const { checkSchemaState } = require('./check-schema');
 
 const app = express();
 
@@ -127,6 +128,20 @@ app.get('/load-tankid-seed', async (req, res) => {
       success: false,
       error: error.message,
       message: 'Failed to load TankID seed data'
+    });
+  }
+});
+
+// Check current schema state
+app.get('/check-schema', async (req, res) => {
+  try {
+    const result = await checkSchemaState();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: error.message,
+      message: 'Failed to check schema state'
     });
   }
 });
