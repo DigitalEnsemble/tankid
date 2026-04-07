@@ -818,11 +818,11 @@ app.get('/tank/:id/documents', async (req, res) => {
     const { id } = req.params;
     if (!UUID.test(id)) return res.status(400).json({ error: 'Invalid tank ID format' });
 
-    // Query for documents related to this tank (R2 migration compatible)
+    // Query for documents related to this tank (R2 integration enabled)
     const documentsResult = await pool.query(`
       SELECT 
         id, original_filename, doc_type, description, 
-        file_path, file_size, created_at
+        file_path, r2_key, file_size, created_at
       FROM tank_documents 
       WHERE $1 = ANY(linked_tanks)
       ORDER BY doc_type, original_filename
@@ -834,8 +834,16 @@ app.get('/tank/:id/documents', async (req, res) => {
       let signed_url = null;
       let expires_at = null;
 
-      // Use legacy file_path for now (R2 will be added in Phase 2)
-      if (doc.file_path) {
+      // Prefer R2 signed URLs, fallback to legacy file_path
+      if (doc.r2_key) {
+        signed_url = await generateSignedUrl(doc.r2_key);
+        if (signed_url) {
+          expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes from now
+        }
+      }
+      
+      // Fallback to legacy file_path if R2 failed or not available
+      if (!signed_url && doc.file_path) {
         signed_url = `https://tankid-api.fly.dev${doc.file_path}`;
         expires_at = null; // Legacy URLs don't expire
       }
@@ -866,7 +874,7 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     if (entityType === 'facility') {
       // Get documents for facility 
       query = `
-        SELECT d.*
+        SELECT d.*, d.r2_key
         FROM tank_documents d
         WHERE d.facility_id = $1
         ORDER BY d.doc_type, d.original_filename
@@ -875,7 +883,7 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
     } else if (entityType === 'tank') {
       // Get documents for specific tank (by tank UUID)
       query = `
-        SELECT * FROM tank_documents
+        SELECT *, r2_key FROM tank_documents
         WHERE $1 = ANY(linked_tanks)
         ORDER BY doc_type, original_filename
       `;
@@ -886,14 +894,22 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
 
     const result = await pool.query(query, params);
     
-    // Add signed URLs to legacy endpoint as well
+    // Add signed URLs to legacy endpoint with R2 support
     const documents = [];
     for (const doc of result.rows) {
       let signed_url = null;
       let expires_at = null;
       
-      // Use legacy file_path for now (R2 will be added in Phase 2)
-      if (doc.file_path) {
+      // Prefer R2 signed URLs, fallback to legacy file_path
+      if (doc.r2_key) {
+        signed_url = await generateSignedUrl(doc.r2_key);
+        if (signed_url) {
+          expires_at = new Date(Date.now() + 15 * 60 * 1000).toISOString(); // 15 minutes from now
+        }
+      }
+      
+      // Fallback to legacy file_path if R2 failed or not available
+      if (!signed_url && doc.file_path) {
         signed_url = `https://tankid-api.fly.dev${doc.file_path}`;
         expires_at = null;
       }
