@@ -771,7 +771,7 @@ app.get('/facility/search', async (req, res) => {
     // Search across all three facility ID columns with case-insensitive matching
     // Include site count aggregation as required by spec
     const result = await pool.query(`
-      SELECT f.id, f.name, f.address, f.city, f.state, f.zip,
+      SELECT f.id, f.name, f.address, f.city, f.state,
              f.state_code, f.state_facility_id, f.client_facility_id, f.installer_facility_id,
              COUNT(DISTINCT sl.id) as site_count
       FROM facilities f
@@ -802,7 +802,6 @@ app.get('/facility/search', async (req, res) => {
       address: row.address,
       city: row.city,
       state: row.state,
-      zip: row.zip,
       state_code: row.state_code,
       state_facility_id: row.state_facility_id,
       client_facility_id: row.client_facility_id,
