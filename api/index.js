@@ -694,7 +694,57 @@ app.get('/tank/:id', async (req, res) => {
       actual_capacity_gal: tankRow.capacity_gallons
     };
 
-    res.json({ tank });
+    // Get tank chart data
+    let chart = [];
+    try {
+      const chartResult = await pool.query(
+        'SELECT height_inches as dipstick_in, volume_gallons as gallons FROM tank_chart_readings WHERE tank_id = $1 ORDER BY height_inches ASC',
+        [id]
+      );
+      chart = chartResult.rows || [];
+    } catch (err) {
+      console.log('Chart query failed:', err.message);
+      chart = [];
+    }
+
+    // Get tank documents
+    const documentsResult = await pool.query(`
+      SELECT 
+        id, original_filename, doc_type, description, 
+        file_path, r2_key, file_size, created_at
+      FROM tank_documents 
+      WHERE $1 = ANY(linked_tanks)
+      ORDER BY doc_type, original_filename
+    `, [id]);
+
+    const documents = [];
+    
+    for (const doc of documentsResult.rows) {
+      let download_url = null;
+
+      // Prefer R2 signed URLs, fallback to legacy file_path
+      if (doc.r2_key) {
+        download_url = await generateSignedUrl(doc.r2_key);
+      }
+      
+      // Fallback to legacy file_path if R2 failed or not available
+      if (!download_url && doc.file_path) {
+        download_url = `https://tankid-api.fly.dev${doc.file_path}`;
+      }
+
+      documents.push({
+        id: doc.id,
+        original_filename: doc.original_filename,
+        doc_type: doc.doc_type,
+        description: doc.description,
+        file_path: doc.file_path,
+        file_size: doc.file_size,
+        download_url,
+        created_at: doc.created_at
+      });
+    }
+
+    res.json({ tank, chart, documents });
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Internal server error' });
