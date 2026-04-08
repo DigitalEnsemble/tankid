@@ -751,70 +751,68 @@ app.get('/tank/:id', async (req, res) => {
   }
 });
 
-// NEW: GET /facility/search - Search by state + facility number
+// NEW: GET /facility/search - Multi-result search by state + facility number (per Tech Requirements)
 app.get('/facility/search', async (req, res) => {
   try {
     const { state, q } = req.query;
     
-    if (!state) {
+    // Parameter validation - trim whitespace and check for empty values
+    const stateParam = state?.trim();
+    const queryParam = q?.trim();
+    
+    if (!stateParam) {
       return res.status(400).json({ error: 'State parameter is required' });
     }
 
-    if (!q) {
+    if (!queryParam) {
       return res.status(400).json({ error: 'Query parameter q (facility number) is required' });
     }
 
-    // Search across all three facility ID columns
+    // Search across all three facility ID columns with case-insensitive matching
+    // Include site count aggregation as required by spec
     const result = await pool.query(`
-      SELECT f.*
+      SELECT f.id, f.name, f.address, f.city, f.state, f.zip,
+             f.state_code, f.state_facility_id, f.client_facility_id, f.installer_facility_id,
+             COUNT(DISTINCT sl.id) as site_count
       FROM facilities f
-      WHERE f.state_code = $1 
-        AND (f.state_facility_id = $2 
-             OR f.client_facility_id = $2 
-             OR f.installer_facility_id = $2)
-      LIMIT 1
-    `, [state.toUpperCase(), q]);
+      LEFT JOIN site_locations sl ON sl.facility_id = f.id
+      WHERE f.state_code = UPPER($1)
+        AND (
+          LOWER(f.state_facility_id) = LOWER($2) OR
+          LOWER(f.client_facility_id) = LOWER($2) OR
+          LOWER(f.installer_facility_id) = LOWER($2)
+        )
+      GROUP BY f.id
+      ORDER BY f.name ASC
+      LIMIT 10
+    `, [stateParam, queryParam]);
 
-    if (!result.rows.length) {
-      return res.status(404).json({ 
-        error: `Not found in ${state.toUpperCase()}. Try a different state or check the facility number.`
+    const count = result.rows.length;
+    
+    if (count === 0) {
+      return res.json({
+        count: 0,
+        results: []
       });
     }
 
-    const facility = result.rows[0];
-
-    // Get site locations with tank counts
-    const sitesResult = await pool.query(`
-      SELECT sl.id, sl.site_name, sl.site_code,
-             COUNT(t.id) as tank_count
-      FROM site_locations sl
-      LEFT JOIN tanks t ON t.site_location_id = sl.id
-      WHERE sl.facility_id = $1
-      GROUP BY sl.id, sl.site_name, sl.site_code
-      ORDER BY sl.site_name
-    `, [facility.id]);
-
-    const site_locations = sitesResult.rows.map(row => ({
+    const results = result.rows.map(row => ({
       id: row.id,
-      site_name: row.site_name,
-      site_code: row.site_code,
-      tank_count: parseInt(row.tank_count)
+      name: row.name,
+      address: row.address,
+      city: row.city,
+      state: row.state,
+      zip: row.zip,
+      state_code: row.state_code,
+      state_facility_id: row.state_facility_id,
+      client_facility_id: row.client_facility_id,
+      installer_facility_id: row.installer_facility_id,
+      site_count: parseInt(row.site_count)
     }));
 
     res.json({ 
-      facility: {
-        id: facility.id,
-        name: facility.name,
-        state_code: facility.state_code,
-        state_facility_id: facility.state_facility_id,
-        client_facility_id: facility.client_facility_id,
-        installer_facility_id: facility.installer_facility_id,
-        address: facility.address,
-        city: facility.city,
-        state: facility.state,
-        zip: facility.zip
-      },
-      site_locations
+      count,
+      results
     });
   } catch (err) {
     console.error('Facility search error:', err.message);
