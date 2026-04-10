@@ -2,8 +2,8 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-6 py-16">
+    <div className="min-h-screen bg-gradient">
+      <div className="container py-16 px-6">
         {/* Header */}
         <header className="text-center mb-16">
           <h1 className="text-6xl font-bold text-gray-900 mb-4">
@@ -16,7 +16,7 @@ export default function Home() {
 
         {/* Main Content */}
         <main className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          <div className="grid grid-cols-3 gap-8 mb-16">
             <div className="bg-white p-8 rounded-lg shadow-lg">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
                 🛡️ Compliance Management
