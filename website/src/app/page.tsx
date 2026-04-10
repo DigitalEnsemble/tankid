@@ -68,15 +68,7 @@ export default function Home() {
         </footer>
       </div>
 
-      <style jsx global>{`
-        * {
-          box-sizing: border-box;
-        }
-        body {
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
-      `}</style>
+
     </div>
   )
 }
