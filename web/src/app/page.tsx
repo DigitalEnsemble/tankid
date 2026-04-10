@@ -4,7 +4,7 @@ import FacilitySearch from '@/components/FacilitySearch';
 
 export default async function Home() {
   // Get hostname from request headers
-  const headersList = headers();
+  const headersList = await headers();
   const hostname = headersList.get('host') || '';
   
   // Determine which content to show based on hostname
