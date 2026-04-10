@@ -23,11 +23,25 @@ jobs:
       env:
         FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
         
-    - name: Wait for deployment
+    - name: Deploy Web App to Fly.io (app.tankid.io)
+      run: |
+        cd web
+        flyctl deploy --remote-only
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        
+    - name: Deploy Website to Fly.io (www.tankid.io)
+      run: |
+        cd website
+        flyctl deploy --remote-only
+      env:
+        FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        
+    - name: Wait for deployments
       run: sleep 30
       
-    - name: Simple health check
+    - name: Health checks
       run: |
-        echo "Testing: https://tankid-api.fly.dev/health"
+        echo "Testing API: https://tankid-api.fly.dev/health"
         curl -f https://tankid-api.fly.dev/health
-        echo "✅ Deployment successful!"
+        echo "✅ API deployment successful!"

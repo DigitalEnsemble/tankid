@@ -16,9 +16,26 @@ tankid/
 │   ├── index.js     # API entry point
 │   ├── fly.toml     # Fly.io configuration
 │   └── package.json # Dependencies
-├── web/             # Frontend (Task 003+)
+├── web/             # Frontend application (app.tankid.io)
+│   ├── src/app/     # Next.js app router pages
+│   ├── fly.toml     # Deployment config for app.tankid.io
+│   └── package.json # Frontend dependencies
+├── website/         # Marketing website (www.tankid.io)
+│   ├── src/app/     # Next.js app router pages
+│   ├── fly.toml     # Deployment config for www.tankid.io
+│   └── package.json # Website dependencies
 └── README.md        # This file
 ```
+
+## Deployments
+
+The TankID system consists of three deployed applications:
+
+- **API** (`tankid-api`) — Backend API at https://tankid-api.fly.dev/
+- **Web App** (`tankid-app`) — Facility search portal at app.tankid.io
+- **Website** (`tankid-website`) — Marketing landing page at www.tankid.io
+
+All applications deploy automatically via GitHub Actions on push to main branch.
 
 ## Database
 
@@ -56,7 +73,7 @@ doppler secrets get DATABASE_URL --project tankid --config prd
 
 ## Deployment
 
-Deployed via GitHub Actions to Fly.io. Push to main branch to trigger deployment.
+Deployed via GitHub Actions to Fly.io. Push to main branch to trigger deployment of all three applications.
 
 ## License
 
