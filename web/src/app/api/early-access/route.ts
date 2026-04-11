@@ -2,16 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('API endpoint called');
     const body = await request.json();
+    console.log('Request body:', body);
     const { userType, firstName, lastName, email, phone, company, location } = body;
 
     // Validate required fields
     if (!firstName || !lastName || !email || !userType) {
+      console.log('Validation failed - missing required fields');
       return NextResponse.json(
         { error: 'Missing required fields' },
         { status: 400 }
       );
     }
+    
+    console.log('Validation passed');
 
     // Format the email content
     const subject = `TankID Early Access Request - ${firstName} ${lastName}`;
@@ -39,11 +44,13 @@ Submitted at: ${new Date().toLocaleString('en-US', {
     // For now, we'll use a simple email service approach
     // Using Resend (you'll need to set RESEND_API_KEY environment variable)
     const resendApiKey = process.env.RESEND_API_KEY;
+    console.log('Resend API key exists:', !!resendApiKey);
     
     if (resendApiKey) {
+      console.log('Attempting to send email via Resend...');
       // Send email via Resend
       const emailData = {
-        from: 'TankID Website <onboarding@resend.dev>',
+        from: 'TankID Website <noreply@tankid.io>',
         to: ['casey.wells@tankid.io'],
         subject: subject,
         text: emailBody,
@@ -51,6 +58,8 @@ Submitted at: ${new Date().toLocaleString('en-US', {
         reply_to: 'casey.wells@tankid.io'
       };
 
+      console.log('Email data prepared:', emailData);
+      
       const response = await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -59,6 +68,8 @@ Submitted at: ${new Date().toLocaleString('en-US', {
         },
         body: JSON.stringify(emailData),
       });
+      
+      console.log('Resend response status:', response.status);
 
       if (!response.ok) {
         const errorText = await response.text();
@@ -87,6 +98,7 @@ Submitted at: ${new Date().toLocaleString('en-US', {
 
   } catch (error) {
     console.error('Error processing early access submission:', error);
+    console.error('Error details:', error instanceof Error ? error.message : String(error));
     return NextResponse.json(
       { error: 'Failed to submit application' },
       { status: 500 }
