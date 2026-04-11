@@ -148,10 +148,10 @@ export default function ForFacilitiesPage() {
                 <Image
                   src="/images/TankID Header2.jpeg"
                   alt="TankID features"
-                  width={400}
-                  height={500}
-                  className="rounded-lg shadow-lg object-cover w-full max-w-sm sm:max-w-md"
-                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 384px, 400px"
+                  width={300}
+                  height={375}
+                  className="rounded-lg shadow-lg object-cover w-full max-w-xs sm:max-w-sm lg:max-w-md"
+                  sizes="(max-width: 480px) 240px, (max-width: 640px) 300px, (max-width: 1024px) 384px, 400px"
                 />
               </div>
             </div>

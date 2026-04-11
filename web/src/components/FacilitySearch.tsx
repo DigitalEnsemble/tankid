@@ -220,8 +220,8 @@ export default function FacilitySearch() {
 
             </div>
             
-            {/* Examples with more space below search */}
-            <div className="mt-12 text-center">
+            {/* Examples with less space above */}
+            <div className="mt-8 text-center">
               <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">
                 Try these examples:
               </p>
@@ -247,8 +247,8 @@ export default function FacilitySearch() {
               </div>
             </div>
           
-          {/* Features Section - Now Below Search */}
-          <div className="grid md:grid-cols-3 gap-8 mb-16">
+          {/* Features Section - More space after examples */}
+          <div className="grid md:grid-cols-3 gap-8 mb-16 mt-20">
             <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
               <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
                 🎯 Multi-ID Search
