@@ -37,33 +37,31 @@ export default function Navigation() {
             <Image
               src="/images/TankID-Logo-New.jpeg"
               alt="TankID.io"
-              width={180}
-              height={48}
-              className="h-12 w-auto"
+              width={240}
+              height={64}
+              className="h-16 w-auto"
             />
           </Link>
           
           {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
-            {/* Action Buttons Only on Desktop */}
+          <div className="hidden md:flex items-center space-x-8">
+            {/* Action Buttons */}
             <div className="flex items-center space-x-4">
               <a
                 href="https://app.tankid.io"
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
               >
-                🔍 Look up a facility
+                🔍 Facility Lookup
               </a>
               <Link
                 href="/get-access"
                 className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors"
               >
-                Get early access
+                Join Early Access
               </Link>
             </div>
-          </div>
-
-          {/* Desktop Hamburger Menu */}
-          <div className="hidden md:block lg:hidden">
+            
+            {/* Hamburger Menu for Links */}
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-gray-900 p-2"
@@ -113,7 +111,7 @@ export default function Navigation() {
 
         {/* Dropdown Menu */}
         {isMenuOpen && (
-          <div className="lg:hidden mt-4 pb-4 border-t border-gray-200">
+          <div className="mt-4 pb-4 border-t border-gray-200">
             <div className="flex flex-col space-y-4 pt-4">
               {navItems.map((item) => (
                 <Link
@@ -130,20 +128,20 @@ export default function Navigation() {
                 </Link>
               ))}
               
-              {/* Action Buttons in Menu */}
-              <div className="flex flex-col space-y-3 pt-4 border-t border-gray-200">
+              {/* Mobile Action Buttons (only show on mobile) */}
+              <div className="md:hidden flex flex-col space-y-3 pt-4 border-t border-gray-200">
                 <a
                   href="https://app.tankid.io"
                   className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-3 rounded-lg font-semibold text-center transition-colors"
                 >
-                  🔍 Look up a facility
+                  🔍 Facility Lookup
                 </a>
                 <Link
                   href="/get-access"
                   onClick={() => setIsMenuOpen(false)}
                   className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-3 rounded-lg font-semibold text-center transition-colors"
                 >
-                  Get early access
+                  Join Early Access
                 </Link>
               </div>
             </div>
