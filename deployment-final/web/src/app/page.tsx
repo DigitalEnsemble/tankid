@@ -23,12 +23,12 @@ export default async function HomePage() {
     <div className="min-h-screen">
       <Navigation />
 
-      {/* Overview Content */}
+      {/* Homepage Content */}
       <section className="pt-20 py-16 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
             <p className="text-orange-600 font-semibold text-sm uppercase tracking-wide mb-4 text-center sm:text-left">
-              Overview
+              TankID
             </p>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8 text-center sm:text-left">
               What is TankID?

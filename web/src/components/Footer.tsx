@@ -9,9 +9,9 @@ export default function Footer() {
             <a href="https://app.tankid.io" className="hover:text-orange-400">
               Facility lookup
             </a>
-            <Link href="/overview" className="hover:text-orange-400">
-              Overview
-            </Link>
+            <a href="https://www.tankid.io" className="hover:text-orange-400">
+              Home
+            </a>
             <Link href="/get-access" className="hover:text-orange-400">
               Get Access
             </Link>

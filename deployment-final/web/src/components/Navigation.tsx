@@ -20,7 +20,7 @@ export default function Navigation() {
   }, []);
 
   const navItems = [
-    { href: '/overview', label: 'Overview' },
+    { href: 'https://www.tankid.io', label: 'Home' },
     { href: '/for-facilities', label: 'For Facilities' },
     { href: '/for-technicians', label: 'For Technicians' },
     { href: '/how-it-works', label: 'How It Works' },
@@ -35,7 +35,7 @@ export default function Navigation() {
         <div className="flex items-center justify-between">
           <Link href="/">
             <Image
-              src="/images/TankID-Logo-New.jpeg"
+              src="/images/tankid logo white.jpeg"
               alt="TankID.io"
               width={240}
               height={64}
