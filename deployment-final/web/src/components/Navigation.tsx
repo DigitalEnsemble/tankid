@@ -36,15 +36,15 @@ export default function Navigation() {
           <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-4">
             <a
               href="https://app.tankid.io"
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors w-full sm:w-auto text-center min-w-[140px]"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center w-[140px]"
             >
               Facility Lookup
             </a>
             <Link
               href="/get-access"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors w-full sm:w-auto text-center min-w-[140px]"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center w-[140px]"
             >
-              Join Early Access
+              Early Access
             </Link>
           </div>
         </div>
