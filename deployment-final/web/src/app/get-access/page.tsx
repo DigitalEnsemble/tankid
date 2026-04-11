@@ -38,18 +38,27 @@ export default function GetAccessPage() {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate form submission (replace with actual API call)
     try {
-      // Here you would typically send the data to your backend
-      console.log('Form submitted:', formData);
-      
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const response = await fetch('/api/early-access', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to submit application');
+      }
+
+      const result = await response.json();
+      console.log('Application submitted successfully:', result);
       
       setSubmitted(true);
     } catch (error) {
       console.error('Error submitting form:', error);
-      // Handle error (show error message)
+      // You could add error state here to show user-friendly error message
+      alert('Failed to submit application. Please try again or contact us directly.');
     } finally {
       setIsSubmitting(false);
     }
