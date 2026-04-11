@@ -139,6 +139,11 @@ export default function FacilitySearch() {
       <div className="container mx-auto px-6 py-16">
         {/* Header */}
         <header className="text-center mb-16">
+          <div className="mb-4">
+            <a href="https://www.tankid.io" className="text-blue-600 hover:text-blue-800 font-medium">
+              ← Back to www.tankid.io
+            </a>
+          </div>
           <h1 className="text-5xl font-bold text-slate-900 dark:text-slate-100 mb-4">
             TankID
           </h1>
@@ -149,39 +154,8 @@ export default function FacilitySearch() {
 
         {/* Main Content */}
         <main className="max-w-4xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 mb-16">
-            {/* Features */}
-            <div className="space-y-8">
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
-                  🎯 Multi-ID Search
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300">
-                  Search by state ID, client ID, or installer ID - we'll find your facility
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
-                  📊 Complete Facility Data
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300">
-                  View all tanks, site locations, and calibration data in one place
-                </p>
-              </div>
-
-              <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
-                <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
-                  📱 QR Code Ready
-                </h3>
-                <p className="text-slate-600 dark:text-slate-300">
-                  Scan facility QR codes for instant access to tank information
-                </p>
-              </div>
-            </div>
-
-            {/* Facility Search Form */}
-            <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-md">
+          {/* Facility Search Form - Now First */}
+          <div className="bg-white dark:bg-slate-800 p-8 rounded-lg shadow-md mb-12 max-w-2xl mx-auto">
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100 mb-6">
                 Find Your Facility
               </h2>
@@ -244,31 +218,62 @@ export default function FacilitySearch() {
                 </button>
               </form>
 
-              <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-600">
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-2">
-                  Try these examples:
-                </p>
-                <div className="space-y-1">
-                  <button 
-                    onClick={() => {
-                      setSelectedState('CO');
-                      setFacilityNumber('7feaf062-4d00-4fd1-b2ac-a083301cf451');
-                    }}
-                    className="block text-blue-600 dark:text-blue-400 hover:underline text-sm cursor-pointer"
-                  >
-                    Colorado: 7feaf062-4d00-4fd1-b2ac-a083301cf451
-                  </button>
-                  <button 
-                    onClick={() => {
-                      setSelectedState('TX');
-                      setFacilityNumber('defbe304-0b20-4832-9985-2d2df0946e64');
-                    }}
-                    className="block text-blue-600 dark:text-blue-400 hover:underline text-sm cursor-pointer"
-                  >
-                    Texas: defbe304-0b20-4832-9985-2d2df0946e64
-                  </button>
-                </div>
+            </div>
+            
+            {/* Examples with more space below search */}
+            <div className="mt-12 text-center">
+              <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">
+                Try these examples:
+              </p>
+              <div className="space-y-4">
+                <button 
+                  onClick={() => {
+                    setSelectedState('CO');
+                    setFacilityNumber('7feaf062-4d00-4fd1-b2ac-a083301cf451');
+                  }}
+                  className="block mx-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Colorado: 7feaf062-4d00-4fd1-b2ac-a083301cf451
+                </button>
+                <button 
+                  onClick={() => {
+                    setSelectedState('TX');
+                    setFacilityNumber('defbe304-0b20-4832-9985-2d2df0946e64');
+                  }}
+                  className="block mx-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
+                >
+                  Texas: defbe304-0b20-4832-9985-2d2df0946e64
+                </button>
               </div>
+            </div>
+          
+          {/* Features Section - Now Below Search */}
+          <div className="grid md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                🎯 Multi-ID Search
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                Search by state ID, client ID, or installer ID - we'll find your facility
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                📊 Complete Facility Data
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                View all tanks, site locations, and calibration data in one place
+              </p>
+            </div>
+
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-lg shadow-md">
+              <h3 className="text-xl font-semibold text-slate-900 dark:text-slate-100 mb-3">
+                📱 QR Code Ready
+              </h3>
+              <p className="text-slate-600 dark:text-slate-300">
+                Scan facility QR codes for instant access to tank information
+              </p>
             </div>
           </div>
 

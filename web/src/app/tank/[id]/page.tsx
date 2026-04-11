@@ -186,12 +186,12 @@ export default function TankPage() {
       <div className="max-w-4xl mx-auto">
         {/* Back Navigation */}
         <div className="mb-6">
-          <Link 
-            href={`/facility/${tank.facility_id}`}
+          <a 
+            href="https://app.tankid.io"
             className="inline-flex items-center text-blue-600 hover:text-blue-800 font-medium"
           >
-            ← Back to {tank.facility_name}
-          </Link>
+            ← Back to app.tankid.io
+          </a>
         </div>
 
         {/* Tank Header */}
