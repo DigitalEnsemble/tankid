@@ -100,8 +100,8 @@ export default async function HomePage() {
                     alt="Storage tank facility"
                     width={400}
                     height={300}
-                    className="rounded-lg shadow-lg object-cover w-full max-w-sm"
-                    sizes="(max-width: 768px) 100vw, 400px"
+                    className="rounded-lg shadow-lg object-cover w-full max-w-xs sm:max-w-sm"
+                    sizes="(max-width: 480px) 280px, (max-width: 768px) 320px, 400px"
                   />
                 </div>
               </div>

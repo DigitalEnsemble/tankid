@@ -16,14 +16,6 @@ export default function ForTechniciansPage() {
             No account. No registration. Select your state, enter the facility number, and you have the 
             full tank profile in under 20 seconds. Works on any phone.
           </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <div className="bg-white text-orange-600 px-6 py-3 rounded-lg font-bold text-lg">
-              app.tankid.io
-            </div>
-            <a href="https://app.tankid.io" className="bg-white text-orange-600 hover:bg-gray-100 px-8 py-3 rounded-lg font-semibold">
-              Look up a facility now →
-            </a>
-          </div>
           <p className="text-sm text-orange-200 mt-4">No app download required. Works on any smartphone browser.</p>
         </div>
       </section>
@@ -189,11 +181,7 @@ export default function ForTechniciansPage() {
                   </div>
                 </div>
                 
-                <div className="mt-8">
-                  <a href="https://app.tankid.io" className="bg-orange-600 hover:bg-orange-700 text-white px-8 py-4 rounded-lg font-semibold text-lg inline-block">
-                    Try a lookup now →
-                  </a>
-                </div>
+
               </div>
               
               <div className="flex justify-center">
@@ -202,7 +190,8 @@ export default function ForTechniciansPage() {
                   alt="TankID QR Label"
                   width={350}
                   height={400}
-                  className="rounded-lg shadow-lg object-cover"
+                  className="rounded-lg shadow-lg object-cover w-full max-w-xs sm:max-w-sm"
+                  sizes="(max-width: 480px) 280px, (max-width: 768px) 320px, 350px"
                 />
               </div>
             </div>
@@ -217,9 +206,7 @@ export default function ForTechniciansPage() {
           <p className="text-xl mb-8 max-w-2xl mx-auto">
             No registration required. Works on any phone. Get the tank data you need before you start the job.
           </p>
-          <a href="https://app.tankid.io" className="bg-white text-orange-600 hover:bg-gray-100 px-8 py-4 rounded-lg font-semibold text-lg inline-block">
-            app.tankid.io →
-          </a>
+          <p className="text-orange-200 text-lg">TankID makes tank data accessible when you need it.</p>
         </div>
       </section>
 

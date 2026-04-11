@@ -146,11 +146,12 @@ export default function ForFacilitiesPage() {
               
               <div className="flex justify-center">
                 <Image
-                  src="/images/TanklID Header 3.jpeg"
+                  src="/images/TankID Header2.jpeg"
                   alt="TankID features"
                   width={400}
                   height={500}
-                  className="rounded-lg shadow-lg object-cover"
+                  className="rounded-lg shadow-lg object-cover w-full max-w-sm sm:max-w-md"
+                  sizes="(max-width: 640px) 100vw, (max-width: 768px) 384px, 400px"
                 />
               </div>
             </div>
