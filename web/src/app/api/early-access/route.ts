@@ -43,11 +43,12 @@ Submitted at: ${new Date().toLocaleString('en-US', {
     if (resendApiKey) {
       // Send email via Resend
       const emailData = {
-        from: 'TankID Website <noreply@tankid.io>',
+        from: 'TankID Website <onboarding@resend.dev>',
         to: ['casey.wells@tankid.io'],
         subject: subject,
         text: emailBody,
-        html: emailBody.replace(/\n/g, '<br>')
+        html: emailBody.replace(/\n/g, '<br>'),
+        reply_to: 'casey.wells@tankid.io'
       };
 
       const response = await fetch('https://api.resend.com/emails', {
@@ -60,20 +61,23 @@ Submitted at: ${new Date().toLocaleString('en-US', {
       });
 
       if (!response.ok) {
-        throw new Error(`Resend API error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('Resend API error:', response.status, errorText);
+        throw new Error(`Resend API error: ${response.status} - ${errorText}`);
       }
 
       const result = await response.json();
-      console.log('Email sent via Resend:', result);
+      console.log('Email sent successfully via Resend:', result);
     } else {
-      // Fallback: Log to console (you can replace this with another email service)
-      console.log('=== EARLY ACCESS FORM SUBMISSION ===');
+      // Fallback: Log to console when API key is missing
+      console.warn('RESEND_API_KEY not found in environment variables!');
+      console.log('=== EARLY ACCESS FORM SUBMISSION (NO EMAIL SENT) ===');
       console.log(subject);
       console.log(emailBody);
-      console.log('=====================================');
+      console.log('=====================================================');
       
       // For development, we'll still return success
-      // In production, you'd want to fail here or use an alternative service
+      // In production, you might want to fail here
     }
 
     return NextResponse.json({ 
