@@ -8,6 +8,26 @@ export default function ForTechniciansPage() {
     <div className="min-h-screen">
       <Navigation />
 
+      {/* Action Buttons */}
+      <section className="pt-20 pb-4 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="https://app.tankid.io"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-center transition-colors"
+            >
+              🔍 Facility Lookup
+            </a>
+            <Link
+              href="/get-access"
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-semibold text-center transition-colors"
+            >
+              Join Early Access
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="pt-20 py-12 bg-orange-600 text-white">
         <div className="container mx-auto px-6 text-center">

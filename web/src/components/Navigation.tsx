@@ -21,7 +21,7 @@ export default function Navigation() {
       isScrolled ? '-translate-y-full' : 'translate-y-0'
     } bg-white shadow-sm`}>
       <div className="container mx-auto px-4 sm:px-6 py-4">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center">
           <Link href="/">
             <Image
               src="/images/tankid logo white.jpeg"
@@ -31,22 +31,6 @@ export default function Navigation() {
               className="h-12 sm:h-16 w-auto"
             />
           </Link>
-          
-          {/* Action Buttons - Responsive Design */}
-          <div className="flex flex-col sm:flex-row items-center justify-center space-y-2 sm:space-y-0 sm:space-x-3">
-            <a
-              href="https://app.tankid.io"
-              className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center w-[140px] h-[40px] flex items-center justify-center"
-            >
-              Facility Lookup
-            </a>
-            <Link
-              href="/get-access"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold transition-colors text-center w-[140px] h-[40px] flex items-center justify-center"
-            >
-              Early Access
-            </Link>
-          </div>
         </div>
       </div>
     </nav>

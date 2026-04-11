@@ -59,6 +59,25 @@ export default function GetAccessPage() {
     <div className="min-h-screen">
       <Navigation />
 
+      {/* Action Buttons */}
+      <section className="pt-20 pb-4 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <a
+              href="https://app.tankid.io"
+              className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-semibold text-center transition-colors"
+            >
+              🔍 Facility Lookup
+            </a>
+            <span
+              className="bg-gray-400 text-white px-6 py-3 rounded-lg font-semibold text-center cursor-not-allowed"
+            >
+              Join Early Access (Current Page)
+            </span>
+          </div>
+        </div>
+      </section>
+
       {/* Hero Section */}
       <section className="pt-20 py-16 bg-blue-600 text-white">
         <div className="container mx-auto px-6 text-center">

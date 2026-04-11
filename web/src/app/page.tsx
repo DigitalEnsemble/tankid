@@ -27,9 +27,6 @@ export default async function HomePage() {
       <section className="pt-20 py-16 bg-gray-50">
         <div className="container mx-auto px-4 sm:px-6">
           <div className="max-w-4xl mx-auto">
-            <p className="text-orange-600 font-semibold text-sm uppercase tracking-wide mb-4 text-center sm:text-left">
-              TankID
-            </p>
             <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-8 text-center sm:text-left">
               What is TankID?
             </h1>
@@ -130,19 +127,33 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* Call to Action */}
+            {/* Call to Action with Action Buttons */}
             <div className="text-center">
               <h3 className="text-xl sm:text-2xl font-bold text-gray-900 mb-6">Ready to get started?</h3>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+                <a
+                  href="https://app.tankid.io"
+                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
+                >
+                  🔍 Facility Lookup
+                </a>
+                <Link
+                  href="/get-access"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
+                >
+                  Join Early Access
+                </Link>
+              </div>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Link 
                   href="/for-facilities" 
-                  className="bg-blue-600 hover:bg-blue-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
+                  className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
                 >
                   For Facility Owners →
                 </Link>
                 <Link 
                   href="/for-technicians" 
-                  className="bg-orange-600 hover:bg-orange-700 text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
+                  className="border border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
                 >
                   For Field Technicians →
                 </Link>
