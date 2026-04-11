@@ -12,6 +12,12 @@ export default function Footer() {
             <a href="https://www.tankid.io" className="hover:text-orange-400">
               Home
             </a>
+            <Link href="/for-facilities" className="hover:text-orange-400">
+              For Facility Owners
+            </Link>
+            <Link href="/for-technicians" className="hover:text-orange-400">
+              For Field Technicians
+            </Link>
             <Link href="/get-access" className="hover:text-orange-400">
               Get Access
             </Link>

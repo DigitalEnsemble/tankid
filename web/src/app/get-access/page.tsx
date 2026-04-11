@@ -60,7 +60,7 @@ export default function GetAccessPage() {
       <Navigation />
 
       {/* Action Buttons */}
-      <section className="pt-20 pb-4 bg-white">
+      <section className="pt-20 pb-2 bg-white">
         <div className="container mx-auto px-6">
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <a
@@ -79,7 +79,7 @@ export default function GetAccessPage() {
       </section>
 
       {/* Hero Section */}
-      <section className="pt-20 py-16 bg-blue-600 text-white">
+      <section className="py-16 bg-blue-600 text-white">
         <div className="container mx-auto px-6 text-center">
           <h1 className="text-4xl font-bold mb-6">Get Early Access to TankID</h1>
           <p className="text-xl mb-8 max-w-3xl mx-auto">

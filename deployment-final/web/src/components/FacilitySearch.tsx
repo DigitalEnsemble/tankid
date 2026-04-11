@@ -221,7 +221,7 @@ export default function FacilitySearch() {
             </div>
             
             {/* Examples with less space above */}
-            <div className="mt-8 text-center">
+            <div className="mt-4 text-center">
               <p className="text-lg text-slate-600 dark:text-slate-400 mb-6">
                 Try these examples:
               </p>
