@@ -2,7 +2,7 @@ import Link from 'next/link';
 import Navigation from '@/components/Navigation';
 import Footer from '@/components/Footer';
 
-export default function PricingPage() {
+export default function PricingPage() { 
   return (
     <div className="min-h-screen">
       <Navigation />
