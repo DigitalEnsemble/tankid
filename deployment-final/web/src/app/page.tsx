@@ -144,7 +144,7 @@ export default async function HomePage() {
                   Join Early Access
                 </Link>
               </div>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-4">
                 <Link 
                   href="/for-facilities" 
                   className="border border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
@@ -156,6 +156,14 @@ export default async function HomePage() {
                   className="border border-orange-600 text-orange-600 hover:bg-orange-600 hover:text-white px-6 sm:px-8 py-3 sm:py-4 rounded-lg font-semibold text-base sm:text-lg transition-colors"
                 >
                   For Field Technicians →
+                </Link>
+              </div>
+              <div className="text-center">
+                <Link 
+                  href="/pricing" 
+                  className="text-gray-600 hover:text-blue-600 underline text-base sm:text-lg transition-colors"
+                >
+                  View Pricing Plans
                 </Link>
               </div>
             </div>

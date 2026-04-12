@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/early-access-debug/route": "/api/early-access-debug",
+  "/api/early-access/route": "/api/early-access",
+  "/api/test/route": "/api/test",
+  "/contact-us/page": "/contact-us",
+  "/disambiguate/page": "/disambiguate",
+  "/facility/[id]/page": "/facility/[id]",
+  "/for-facilities/page": "/for-facilities",
+  "/for-technicians/page": "/for-technicians",
+  "/get-access/page": "/get-access",
+  "/how-it-works/page": "/how-it-works",
+  "/icon/route": "/icon",
+  "/overview/page": "/overview",
+  "/page": "/",
+  "/pricing/page": "/pricing",
+  "/tank/[id]/page": "/tank/[id]"
+}
