@@ -18,6 +18,9 @@ export default function Footer() {
             <Link href="/for-technicians" className="hover:text-orange-400">
               For Field Technicians
             </Link>
+            <Link href="/pricing" className="hover:text-orange-400">
+              Pricing
+            </Link>
             <Link href="/get-access" className="hover:text-orange-400">
               Get Access
             </Link>
