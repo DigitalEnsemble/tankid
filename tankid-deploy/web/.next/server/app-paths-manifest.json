@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "app/_global-error/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/early-access-debug/route": "app/api/early-access-debug/route.js",
+  "/api/early-access/route": "app/api/early-access/route.js",
+  "/api/test/route": "app/api/test/route.js",
+  "/contact-us/page": "app/contact-us/page.js",
+  "/disambiguate/page": "app/disambiguate/page.js",
+  "/facility/[id]/page": "app/facility/[id]/page.js",
+  "/for-facilities/page": "app/for-facilities/page.js",
+  "/for-technicians/page": "app/for-technicians/page.js",
+  "/get-access/page": "app/get-access/page.js",
+  "/how-it-works/page": "app/how-it-works/page.js",
+  "/icon/route": "app-edge-has-no-entrypoint",
+  "/overview/page": "app/overview/page.js",
+  "/page": "app/page.js",
+  "/pricing/page": "app/pricing/page.js",
+  "/tank/[id]/page": "app/tank/[id]/page.js"
+}
