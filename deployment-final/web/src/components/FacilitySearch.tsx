@@ -195,7 +195,7 @@ export default function FacilitySearch() {
                     id="facilityNumber"
                     value={facilityNumber}
                     onChange={(e) => setFacilityNumber(e.target.value)}
-                    placeholder="Enter facility number (e.g., 1643, ABC123, etc.)"
+                    placeholder="Enter facility number (e.g., 1643, ATX1836, etc.)"
                     className="w-full px-4 py-2 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100"
                     required
                   />
@@ -229,20 +229,20 @@ export default function FacilitySearch() {
                 <button 
                   onClick={() => {
                     setSelectedState('CO');
-                    setFacilityNumber('7feaf062-4d00-4fd1-b2ac-a083301cf451');
+                    setFacilityNumber('1643');
                   }}
                   className="block mx-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
-                  Colorado: 7feaf062-4d00-4fd1-b2ac-a083301cf451
+                  <strong>Colorado:</strong> 1643 (Generic Maintenance Support Center - Denver)
                 </button>
                 <button 
                   onClick={() => {
                     setSelectedState('TX');
-                    setFacilityNumber('defbe304-0b20-4832-9985-2d2df0946e64');
+                    setFacilityNumber('ATX1836');
                   }}
                   className="block mx-auto text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium px-4 py-2 rounded-lg hover:bg-blue-50 dark:hover:bg-slate-700 transition-colors cursor-pointer"
                 >
-                  Texas: defbe304-0b20-4832-9985-2d2df0946e64
+                  <strong>Texas:</strong> ATX1836 (Test Gas Station - Anytown)
                 </button>
               </div>
             </div>
