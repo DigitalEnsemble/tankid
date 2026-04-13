@@ -121,7 +121,7 @@ export default function SearchPage() {
                   id="clientFacilityId"
                   value={clientFacilityId}
                   onChange={(e) => setClientFacilityId(e.target.value)}
-                  placeholder="Enter your client facility ID (e.g., CF12345, SITE-001, etc.)"
+                  placeholder="Enter your client facility ID (e.g., 1643, ATX1836, etc.)"
                   className="w-full px-4 py-3 border border-slate-300 dark:border-slate-600 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-slate-700 dark:text-slate-100 text-lg"
                   required
                 />
@@ -155,11 +155,11 @@ export default function SearchPage() {
               They may appear on invoices, service records, or internal documentation.
             </p>
             <div className="text-sm text-blue-700 dark:text-blue-300">
-              <p className="mb-2"><strong>Common formats:</strong></p>
+              <p className="mb-2"><strong>Example client facility IDs:</strong></p>
               <ul className="list-disc list-inside space-y-1">
-                <li>Alphanumeric codes (CF12345, SITE-001)</li>
-                <li>Location-based IDs (NYC-MAIN, LA-WEST)</li>
-                <li>Custom numbering systems</li>
+                <li><strong>1643</strong> - Colorado facility (Denver)</li>
+                <li><strong>ATX1836</strong> - Texas facility (Anytown)</li>
+                <li>Custom numbering and location codes</li>
               </ul>
             </div>
           </div>
