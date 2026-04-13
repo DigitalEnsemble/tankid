@@ -26,6 +26,9 @@ const { debugSchemaDetails } = require('./debug-schema');
 
 const app = express();
 
+// JSON body parser middleware
+app.use(express.json());
+
 // CORS middleware
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -199,6 +202,36 @@ app.get('/search', async (req, res) => {
 
   } catch (err) {
     console.error('Search API error:', err.message);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
+// Temporary admin endpoint to update client_facility_id
+app.post('/admin/update-facility-client-id', async (req, res) => {
+  try {
+    const { facility_id, client_facility_id } = req.body;
+    
+    if (!facility_id || !client_facility_id) {
+      return res.status(400).json({ error: 'facility_id and client_facility_id are required' });
+    }
+    
+    const result = await pool.query(
+      'UPDATE facilities SET client_facility_id = $1 WHERE id = $2 RETURNING *',
+      [client_facility_id, facility_id]
+    );
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Facility not found' });
+    }
+    
+    res.json({ 
+      success: true, 
+      message: `Updated facility ${facility_id} with client_facility_id: ${client_facility_id}`,
+      facility: result.rows[0] 
+    });
+    
+  } catch (err) {
+    console.error('Update facility error:', err.message);
     res.status(500).json({ error: 'Internal server error', details: err.message });
   }
 });
