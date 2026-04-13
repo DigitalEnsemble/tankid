@@ -143,6 +143,66 @@ app.get('/facilities', async (req, res) => {
   }
 });
 
+// Search facilities by client_facility_id
+app.get('/search', async (req, res) => {
+  try {
+    const { client_facility_id } = req.query;
+    
+    if (!client_facility_id) {
+      return res.status(400).json({ error: 'client_facility_id parameter is required' });
+    }
+
+    // Query facilities table for matching client_facility_id
+    const result = await pool.query(`
+      SELECT f.*, COUNT(t.id) as tank_count
+      FROM facilities f
+      LEFT JOIN site_locations sl ON sl.facility_id = f.id
+      LEFT JOIN tanks t ON t.site_location_id = sl.id
+      WHERE f.client_facility_id = $1
+      GROUP BY f.id
+      ORDER BY f.name ASC
+    `, [client_facility_id]);
+
+    const facilities = result.rows;
+
+    // No results - return 404
+    if (facilities.length === 0) {
+      return res.status(404).json({ 
+        error: 'No facilities found',
+        message: `No facility found with client_facility_id: ${client_facility_id}`
+      });
+    }
+
+    // Single result - redirect to facility page
+    if (facilities.length === 1) {
+      const facility = facilities[0];
+      return res.redirect(`/facility/${facility.id}`);
+    }
+
+    // Multiple results - return array for selection
+    const facilitiesForSelection = facilities.map(row => ({
+      id: row.id,
+      name: row.name,
+      address: row.address,
+      city: row.city,
+      state: row.state,
+      zip: row.zip,
+      client_facility_id: row.client_facility_id,
+      tank_count: parseInt(row.tank_count || 0)
+    }));
+
+    res.json({
+      count: facilities.length,
+      client_facility_id,
+      facilities: facilitiesForSelection
+    });
+
+  } catch (err) {
+    console.error('Search API error:', err.message);
+    res.status(500).json({ error: 'Internal server error', details: err.message });
+  }
+});
+
 // Helper endpoint to lookup facilities by any ID format
 app.get('/lookup/facility/:id', async (req, res) => {
   try {
