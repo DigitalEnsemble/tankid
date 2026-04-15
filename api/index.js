@@ -1326,14 +1326,15 @@ app.post('/api/intake-sync', async (req, res) => {
               // Create document record (placeholder for now)
               const documentResult = await pool.query(`
                 INSERT INTO tank_documents (
-                  linked_tanks, filename, original_filename, r2_key, file_size, mime_type,
+                  linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
                   doc_type, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
                 RETURNING id
               `, [
                 [tankId], // Array of linked tank UUIDs
                 cleanFilename,
                 cleanFilename,
+                r2Key, // Use r2Key as file_path for now
                 r2Key,
                 0, // File size placeholder
                 'application/pdf',
