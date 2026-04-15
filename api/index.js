@@ -1266,12 +1266,13 @@ app.post('/api/intake-sync', async (req, res) => {
           tankId = updateTank.rows[0].id;
         } else {
           // Create new tank
+          console.log(`🔧 Inserting tank with siteLocationId: ${siteLocationId}, tankModelId: ${tankModelId}`);
           const insertTank = await pool.query(`
             INSERT INTO tanks (
               id, serial_number, site_location_id, model_id,
               install_date, last_inspection_date,
               created_at
-            ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, NOW())
+            ) VALUES (uuid_generate_v4(), $1, $2::uuid, $3::uuid, $4, $5, NOW())
             RETURNING id
           `, [
             tank.serial_number,
