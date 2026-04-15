@@ -1,7 +1,8 @@
 const express = require('express');
 const { Pool } = require('pg');
 const path = require('path');
-const { S3Client, GetObjectCommand } = require('@aws-sdk/client-s3');
+const fs = require('fs');
+const { S3Client, GetObjectCommand, PutObjectCommand } = require('@aws-sdk/client-s3');
 const { getSignedUrl } = require('@aws-sdk/s3-request-presigner');
 const { loadTankIDSeedData } = require('./load-tankid-seed');
 const { migrateToUUIDs } = require('./migrate-to-uuids');
@@ -1346,6 +1347,31 @@ app.post('/api/intake-sync', async (req, res) => {
               ]);
               
               console.log(`📄 Created document record: ${cleanFilename}`);
+              
+              // Actually upload file to R2
+              try {
+                const fileBuffer = fs.readFileSync(documentPath);
+                const uploadCommand = new PutObjectCommand({
+                  Bucket: process.env.R2_BUCKET,
+                  Key: r2Key,
+                  Body: fileBuffer,
+                  ContentType: 'application/pdf'
+                });
+                
+                await s3Client.send(uploadCommand);
+                console.log(`✅ Uploaded to R2: ${r2Key}`);
+                
+                // Update database record with actual file size
+                await pool.query(`
+                  UPDATE tank_documents SET file_size = $1 WHERE id = $2
+                `, [fileBuffer.length, documentResult.rows[0].id]);
+                
+              } catch (uploadError) {
+                console.error(`❌ R2 upload failed for ${cleanFilename}:`, uploadError.message);
+                // Keep database record but log the upload failure
+                results.errors.push(`Document upload ${cleanFilename}: ${uploadError.message}`);
+              }
+              
               results.documents_uploaded++;
               
             } catch (docError) {
