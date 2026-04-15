@@ -1225,27 +1225,46 @@ app.post('/api/intake-sync', async (req, res) => {
         ]);
         const tankModelId = tankModelResult.rows[0].id;
         
-        // Create tank
-        const insertTank = await pool.query(`
-          INSERT INTO tanks (
-            id, serial_number, site_location_id, model_id,
-            install_date, last_inspection_date,
-            created_at
-          ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, NOW())
-          ON CONFLICT (serial_number, site_location_id)
-          DO UPDATE SET 
-            last_inspection_date = $5,
-            updated_at = NOW()
-          RETURNING id
-        `, [
-          tank.serial_number,
-          siteLocationId,
-          tankModelId,
-          tank.extracted_data?.installation_date || null,
-          tank.extracted_data?.last_inspection || null
-        ]);
+        // Check for existing tank first
+        let existingTank = await pool.query(`
+          SELECT id FROM tanks 
+          WHERE serial_number = $1 AND site_location_id = $2
+        `, [tank.serial_number, siteLocationId]);
         
-        const tankId = insertTank.rows[0].id;
+        let tankId;
+        if (existingTank.rows.length > 0) {
+          // Update existing tank
+          const updateTank = await pool.query(`
+            UPDATE tanks SET 
+              last_inspection_date = $3,
+              updated_at = NOW()
+            WHERE id = $1
+            RETURNING id
+          `, [
+            existingTank.rows[0].id,
+            tank.extracted_data?.installation_date || null,
+            tank.extracted_data?.last_inspection || null
+          ]);
+          tankId = updateTank.rows[0].id;
+        } else {
+          // Create new tank
+          const insertTank = await pool.query(`
+            INSERT INTO tanks (
+              id, serial_number, site_location_id, model_id,
+              install_date, last_inspection_date,
+              created_at
+            ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, NOW())
+            RETURNING id
+          `, [
+            tank.serial_number,
+            siteLocationId,
+            tankModelId,
+            tank.extracted_data?.installation_date || null,
+            tank.extracted_data?.last_inspection || null
+          ]);
+          tankId = insertTank.rows[0].id;
+        }
+        
         results.tanks_synced++;
         console.log(`✅ Synced tank: ${tank.serial_number} (${tankId})`);
         
