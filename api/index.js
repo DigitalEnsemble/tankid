@@ -27,8 +27,8 @@ const { debugSchemaDetails } = require('./debug-schema');
 
 const app = express();
 
-// JSON body parser middleware
-app.use(express.json());
+// JSON body parser middleware with increased limit for document uploads
+app.use(express.json({ limit: '50mb' }));
 
 // CORS middleware
 app.use((req, res, next) => {
