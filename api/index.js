@@ -1183,6 +1183,7 @@ app.post('/api/intake-sync', async (req, res) => {
         let facilityId;
         if (facilityResult.rows.length === 0) {
           // Create new facility
+          console.log(`🏢 Creating new facility: ${facilityData.name}`);
           const insertFacility = await pool.query(`
             INSERT INTO facilities (id, name, address, city, state, state_code, state_facility_id, created_at)
             VALUES (uuid_generate_v4(), $1, $2, $3, $4, $4, $1, NOW())
@@ -1202,6 +1203,7 @@ app.post('/api/intake-sync', async (req, res) => {
         }
         
         // Create site_location (check for existing first)
+        console.log(`🏗️ Creating site location for facility: ${facilityId}`);
         let siteLocationId;
         const existingSite = await pool.query(`
           SELECT id FROM site_locations WHERE facility_id = $1 AND site_name = $2
@@ -1354,6 +1356,7 @@ app.post('/api/intake-sync', async (req, res) => {
         
       } catch (tankError) {
         console.error(`❌ Tank error for ${tank.serial_number}:`, tankError.message);
+        console.error(`❌ Stack trace:`, tankError.stack);
         results.errors.push(`Tank ${tank.serial_number}: ${tankError.message}`);
       }
     }
