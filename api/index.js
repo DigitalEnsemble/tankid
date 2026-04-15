@@ -1248,7 +1248,7 @@ app.post('/api/intake-sync', async (req, res) => {
         // Check for existing tank first
         let existingTank = await pool.query(`
           SELECT id FROM tanks 
-          WHERE serial_number = $1 AND site_location_id = $2
+          WHERE serial_number = $1 AND site_location_id = $2::uuid
         `, [tank.serial_number, siteLocationId]);
         
         let tankId;
