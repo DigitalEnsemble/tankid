@@ -1184,8 +1184,8 @@ app.post('/api/intake-sync', async (req, res) => {
         if (facilityResult.rows.length === 0) {
           // Create new facility
           const insertFacility = await pool.query(`
-            INSERT INTO facilities (name, address, city, state, state_code, state_facility_id, created_at)
-            VALUES ($1, $2, $3, $4, $4, uuid_generate_v4(), NOW())
+            INSERT INTO facilities (id, name, address, city, state, state_code, state_facility_id, created_at)
+            VALUES (uuid_generate_v4(), $1, $2, $3, $4, $4, $1, NOW())
             RETURNING id
           `, [
             facilityData.name,
@@ -1213,8 +1213,8 @@ app.post('/api/intake-sync', async (req, res) => {
         
         // Create tank_model
         const tankModelResult = await pool.query(`
-          INSERT INTO tank_models (model_name, manufacturer, capacity_gallons, created_at)
-          VALUES ($1, $2, $3, NOW())
+          INSERT INTO tank_models (id, model_name, manufacturer, capacity_gallons, created_at)
+          VALUES (uuid_generate_v4(), $1, $2, $3, NOW())
           ON CONFLICT (model_name, manufacturer, capacity_gallons)
           DO UPDATE SET model_name = $1
           RETURNING id
@@ -1228,10 +1228,10 @@ app.post('/api/intake-sync', async (req, res) => {
         // Create tank
         const insertTank = await pool.query(`
           INSERT INTO tanks (
-            serial_number, site_location_id, model_id,
+            id, serial_number, site_location_id, model_id,
             install_date, last_inspection_date,
             created_at
-          ) VALUES ($1, $2, $3, $4, $5, NOW())
+          ) VALUES (uuid_generate_v4(), $1, $2, $3, $4, $5, NOW())
           ON CONFLICT (serial_number, site_location_id)
           DO UPDATE SET 
             last_inspection_date = $5,
@@ -1289,12 +1289,13 @@ app.post('/api/intake-sync', async (req, res) => {
               // Create document record (placeholder for now)
               const documentResult = await pool.query(`
                 INSERT INTO tank_documents (
-                  linked_tanks, original_filename, r2_key, file_size, mime_type,
+                  linked_tanks, filename, original_filename, r2_key, file_size, mime_type,
                   doc_type, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
                 RETURNING id
               `, [
                 [tankId], // Array of linked tank UUIDs
+                cleanFilename,
                 cleanFilename,
                 r2Key,
                 0, // File size placeholder
