@@ -1176,7 +1176,7 @@ app.post('/api/intake-sync', async (req, res) => {
         
         // Create or find facility
         let facilityResult = await pool.query(`
-          SELECT facility_id FROM facilities 
+          SELECT id FROM facilities 
           WHERE LOWER(name) = LOWER($1) AND LOWER(address) = LOWER($2)
         `, [facilityData.name, facilityData.address]);
         
@@ -1184,75 +1184,68 @@ app.post('/api/intake-sync', async (req, res) => {
         if (facilityResult.rows.length === 0) {
           // Create new facility
           const insertFacility = await pool.query(`
-            INSERT INTO facilities (name, address, city, state, zip, phone, created_at)
-            VALUES ($1, $2, $3, $4, $5, $6, NOW())
-            RETURNING facility_id
+            INSERT INTO facilities (name, address, city, state, state_code, state_facility_id, created_at)
+            VALUES ($1, $2, $3, $4, $4, uuid_generate_v4(), NOW())
+            RETURNING id
           `, [
             facilityData.name,
             facilityData.address,
             tank.extracted_data?.facility_city || '',
-            facilityData.state,
-            tank.extracted_data?.facility_zip || '',
-            facilityData.phone || null
+            facilityData.state || 'CO'
           ]);
-          facilityId = insertFacility.rows[0].facility_id;
+          facilityId = insertFacility.rows[0].id;
           results.facilities_synced++;
           console.log(`✅ Created facility: ${facilityData.name} (${facilityId})`);
         } else {
-          facilityId = facilityResult.rows[0].facility_id;
+          facilityId = facilityResult.rows[0].id;
           console.log(`✅ Found existing facility: ${facilityData.name} (${facilityId})`);
         }
         
         // Create site_location
         const siteResult = await pool.query(`
-          INSERT INTO site_locations (facility_id, name, address, created_at)
+          INSERT INTO site_locations (facility_id, site_name, description, created_at)
           VALUES ($1, $2, $3, NOW())
-          ON CONFLICT (facility_id, name) 
-          DO UPDATE SET address = $3
-          RETURNING site_location_id
+          ON CONFLICT (facility_id, site_name) 
+          DO UPDATE SET description = $3
+          RETURNING id
         `, [facilityId, 'Main Site', facilityData.address]);
-        const siteLocationId = siteResult.rows[0].site_location_id;
+        const siteLocationId = siteResult.rows[0].id;
         
         // Create tank_model
         const tankModelResult = await pool.query(`
-          INSERT INTO tank_models (name, manufacturer, capacity, material, created_at)
-          VALUES ($1, $2, $3, $4, NOW())
-          ON CONFLICT (name, manufacturer, capacity, material)
-          DO UPDATE SET name = $1
-          RETURNING tank_model_id
+          INSERT INTO tank_models (model_name, manufacturer, capacity_gallons, created_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (model_name, manufacturer, capacity_gallons)
+          DO UPDATE SET model_name = $1
+          RETURNING id
         `, [
           tank.extracted_data?.tank_model || 'Unknown Model',
           tank.extracted_data?.manufacturer || 'Unknown',
-          parseInt(tank.extracted_data?.capacity_gallons) || 0,
-          tank.extracted_data?.material || 'Steel'
+          parseInt(tank.extracted_data?.capacity_gallons) || 0
         ]);
-        const tankModelId = tankModelResult.rows[0].tank_model_id;
+        const tankModelId = tankModelResult.rows[0].id;
         
         // Create tank
         const insertTank = await pool.query(`
           INSERT INTO tanks (
-            serial_number, facility_id, site_location_id, tank_model_id,
-            installation_date, last_inspection, status, confidence_score,
+            serial_number, site_location_id, model_id,
+            install_date, last_inspection_date,
             created_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-          ON CONFLICT (serial_number, facility_id)
+          ) VALUES ($1, $2, $3, $4, $5, NOW())
+          ON CONFLICT (serial_number, site_location_id)
           DO UPDATE SET 
-            last_inspection = $6,
-            confidence_score = $8,
+            last_inspection_date = $5,
             updated_at = NOW()
-          RETURNING tank_id
+          RETURNING id
         `, [
           tank.serial_number,
-          facilityId,
           siteLocationId,
           tankModelId,
           tank.extracted_data?.installation_date || null,
-          tank.extracted_data?.last_inspection || null,
-          'active',
-          parseFloat(tank.confidence_score) || 100.0
+          tank.extracted_data?.last_inspection || null
         ]);
         
-        const tankId = insertTank.rows[0].tank_id;
+        const tankId = insertTank.rows[0].id;
         results.tanks_synced++;
         console.log(`✅ Synced tank: ${tank.serial_number} (${tankId})`);
         
@@ -1296,18 +1289,17 @@ app.post('/api/intake-sync', async (req, res) => {
               // Create document record (placeholder for now)
               const documentResult = await pool.query(`
                 INSERT INTO tank_documents (
-                  tank_id, original_filename, r2_key, file_size, mime_type,
-                  upload_status, document_category, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-                RETURNING document_id
+                  linked_tanks, original_filename, r2_key, file_size, mime_type,
+                  doc_type, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+                RETURNING id
               `, [
-                tankId,
+                [tankId], // Array of linked tank UUIDs
                 cleanFilename,
                 r2Key,
                 0, // File size placeholder
                 'application/pdf',
-                'pending_upload',
-                category
+                category.toLowerCase().replace(/\s+/g, '_')
               ]);
               
               console.log(`📄 Created document record: ${cleanFilename}`);
