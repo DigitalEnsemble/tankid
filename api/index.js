@@ -1133,6 +1133,216 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
   }
 });
 
+// Intake Agent Sync Endpoint
+app.post('/api/intake-sync', async (req, res) => {
+  try {
+    console.log('🚀 Intake sync request received');
+    
+    const { tanks, documents, dry_run = false } = req.body;
+    
+    if (!tanks || !Array.isArray(tanks)) {
+      return res.status(400).json({ error: 'tanks array is required' });
+    }
+    
+    const results = {
+      facilities_synced: 0,
+      tanks_synced: 0,
+      documents_uploaded: 0,
+      errors: [],
+      dry_run
+    };
+    
+    console.log(`📊 Processing ${tanks.length} tanks, dry_run: ${dry_run}`);
+    
+    for (const tank of tanks) {
+      try {
+        console.log(`🔄 Processing tank: ${tank.serial_number}`);
+        
+        // Extract facility info from tank data
+        const facilityData = {
+          name: tank.extracted_data?.facility_name || tank.facility_name,
+          address: tank.extracted_data?.facility_address || tank.facility_address,
+          state: tank.extracted_data?.facility_state || tank.facility_state,
+          phone: tank.extracted_data?.facility_phone || tank.facility_phone
+        };
+        
+        if (dry_run) {
+          console.log(`🧪 DRY RUN: Would create facility: ${facilityData.name}`);
+          console.log(`🧪 DRY RUN: Would sync tank: ${tank.serial_number}`);
+          results.facilities_synced++;
+          results.tanks_synced++;
+          continue;
+        }
+        
+        // Create or find facility
+        let facilityResult = await pool.query(`
+          SELECT facility_id FROM facilities 
+          WHERE LOWER(name) = LOWER($1) AND LOWER(address) = LOWER($2)
+        `, [facilityData.name, facilityData.address]);
+        
+        let facilityId;
+        if (facilityResult.rows.length === 0) {
+          // Create new facility
+          const insertFacility = await pool.query(`
+            INSERT INTO facilities (name, address, city, state, zip, phone, created_at)
+            VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING facility_id
+          `, [
+            facilityData.name,
+            facilityData.address,
+            tank.extracted_data?.facility_city || '',
+            facilityData.state,
+            tank.extracted_data?.facility_zip || '',
+            facilityData.phone || null
+          ]);
+          facilityId = insertFacility.rows[0].facility_id;
+          results.facilities_synced++;
+          console.log(`✅ Created facility: ${facilityData.name} (${facilityId})`);
+        } else {
+          facilityId = facilityResult.rows[0].facility_id;
+          console.log(`✅ Found existing facility: ${facilityData.name} (${facilityId})`);
+        }
+        
+        // Create site_location
+        const siteResult = await pool.query(`
+          INSERT INTO site_locations (facility_id, name, address, created_at)
+          VALUES ($1, $2, $3, NOW())
+          ON CONFLICT (facility_id, name) 
+          DO UPDATE SET address = $3
+          RETURNING site_location_id
+        `, [facilityId, 'Main Site', facilityData.address]);
+        const siteLocationId = siteResult.rows[0].site_location_id;
+        
+        // Create tank_model
+        const tankModelResult = await pool.query(`
+          INSERT INTO tank_models (name, manufacturer, capacity, material, created_at)
+          VALUES ($1, $2, $3, $4, NOW())
+          ON CONFLICT (name, manufacturer, capacity, material)
+          DO UPDATE SET name = $1
+          RETURNING tank_model_id
+        `, [
+          tank.extracted_data?.tank_model || 'Unknown Model',
+          tank.extracted_data?.manufacturer || 'Unknown',
+          parseInt(tank.extracted_data?.capacity_gallons) || 0,
+          tank.extracted_data?.material || 'Steel'
+        ]);
+        const tankModelId = tankModelResult.rows[0].tank_model_id;
+        
+        // Create tank
+        const insertTank = await pool.query(`
+          INSERT INTO tanks (
+            serial_number, facility_id, site_location_id, tank_model_id,
+            installation_date, last_inspection, status, confidence_score,
+            created_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+          ON CONFLICT (serial_number, facility_id)
+          DO UPDATE SET 
+            last_inspection = $6,
+            confidence_score = $8,
+            updated_at = NOW()
+          RETURNING tank_id
+        `, [
+          tank.serial_number,
+          facilityId,
+          siteLocationId,
+          tankModelId,
+          tank.extracted_data?.installation_date || null,
+          tank.extracted_data?.last_inspection || null,
+          'active',
+          parseFloat(tank.confidence_score) || 100.0
+        ]);
+        
+        const tankId = insertTank.rows[0].tank_id;
+        results.tanks_synced++;
+        console.log(`✅ Synced tank: ${tank.serial_number} (${tankId})`);
+        
+        // Upload documents to R2 if provided
+        if (tank.document_ids && tank.document_ids.length > 0) {
+          for (const documentPath of tank.document_ids) {
+            try {
+              // Skip if already uploaded (contains http/https)
+              if (documentPath.includes('http')) {
+                console.log(`⏭️ Document already uploaded: ${documentPath}`);
+                continue;
+              }
+              
+              // Extract filename and category
+              const filename = documentPath.split('/').pop();
+              const cleanFilename = filename.replace(/^\d{4}-\d{2}-\d{2}T[\d\-\.]+Z_/, '');
+              
+              // Determine document category
+              let category = 'Other';
+              if (cleanFilename.toLowerCase().includes('permit')) {
+                category = 'Installation Permit';
+              } else if (cleanFilename.toLowerCase().includes('chart')) {
+                category = 'Tank Specifications';
+              } else if (cleanFilename.toLowerCase().includes('xerxes')) {
+                category = 'Product Specifications';
+              }
+              
+              // For dry run, just log what would happen
+              if (dry_run) {
+                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category})`);
+                results.documents_uploaded++;
+                continue;
+              }
+              
+              // Generate R2 key
+              const uploadDate = new Date();
+              const year = uploadDate.getFullYear();
+              const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
+              const r2Key = `intake/${year}/${month}/${category.toLowerCase().replace(/\s+/g, '_')}/${filename}`;
+              
+              // Create document record (placeholder for now)
+              const documentResult = await pool.query(`
+                INSERT INTO tank_documents (
+                  tank_id, original_filename, r2_key, file_size, mime_type,
+                  upload_status, document_category, created_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                RETURNING document_id
+              `, [
+                tankId,
+                cleanFilename,
+                r2Key,
+                0, // File size placeholder
+                'application/pdf',
+                'pending_upload',
+                category
+              ]);
+              
+              console.log(`📄 Created document record: ${cleanFilename}`);
+              results.documents_uploaded++;
+              
+            } catch (docError) {
+              console.error(`❌ Document error for ${documentPath}:`, docError.message);
+              results.errors.push(`Document ${documentPath}: ${docError.message}`);
+            }
+          }
+        }
+        
+      } catch (tankError) {
+        console.error(`❌ Tank error for ${tank.serial_number}:`, tankError.message);
+        results.errors.push(`Tank ${tank.serial_number}: ${tankError.message}`);
+      }
+    }
+    
+    console.log('📊 Sync completed:', results);
+    res.json({
+      success: true,
+      message: `Sync completed. Tanks: ${results.tanks_synced}, Documents: ${results.documents_uploaded}`,
+      ...results
+    });
+    
+  } catch (err) {
+    console.error('💥 Intake sync error:', err.message);
+    res.status(500).json({ 
+      success: false,
+      error: err.message,
+      message: 'Intake sync failed'
+    });
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`TankID API running on port ${PORT}`);
