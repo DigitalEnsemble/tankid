@@ -1292,7 +1292,93 @@ app.post('/api/intake-sync', async (req, res) => {
         console.log(`✅ Synced tank: ${tank.serial_number} (${tankId})`);
         
         // Upload documents to R2 if provided
-        if (tank.document_ids && tank.document_ids.length > 0) {
+        // NEW FORMAT: Handle base64 document content (preferred)
+        if (tank.documents_content && tank.documents_content.length > 0) {
+          console.log(`📄 Processing ${tank.documents_content.length} documents with base64 content`);
+          
+          for (const doc of tank.documents_content) {
+            try {
+              const { filename, content, mime_type = 'application/pdf' } = doc;
+              
+              // Extract clean filename
+              const cleanFilename = filename.replace(/^\d{4}-\d{2}-\d{2}T[\d\-\.]+Z_/, '');
+              
+              // Determine document category
+              let category = 'Other';
+              if (cleanFilename.toLowerCase().includes('permit')) {
+                category = 'Installation Permit';
+              } else if (cleanFilename.toLowerCase().includes('chart')) {
+                category = 'Tank Specifications';
+              } else if (cleanFilename.toLowerCase().includes('xerxes')) {
+                category = 'Product Specifications';
+              }
+              
+              // For dry run, just log what would happen
+              if (dry_run) {
+                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category})`);
+                results.documents_uploaded++;
+                continue;
+              }
+              
+              // Generate R2 key
+              const uploadDate = new Date();
+              const year = uploadDate.getFullYear();
+              const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
+              const r2Key = `intake/${year}/${month}/${category.toLowerCase().replace(/\s+/g, '_')}/${filename}`;
+              
+              // Convert base64 to buffer
+              const fileBuffer = Buffer.from(content, 'base64');
+              const fileSize = fileBuffer.length;
+              
+              // Upload to R2
+              try {
+                const uploadCommand = new PutObjectCommand({
+                  Bucket: process.env.R2_BUCKET,
+                  Key: r2Key,
+                  Body: fileBuffer,
+                  ContentType: mime_type
+                });
+                
+                await s3Client.send(uploadCommand);
+                console.log(`✅ Uploaded to R2: ${r2Key} (${fileSize} bytes)`);
+                
+                // Create document record with actual R2 URL
+                const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
+                const documentResult = await pool.query(`
+                  INSERT INTO tank_documents (
+                    linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                    doc_type, created_at
+                  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+                  RETURNING id
+                `, [
+                  [tankId], // Array of linked tank UUIDs
+                  cleanFilename,
+                  cleanFilename,
+                  r2Url, // Use actual R2 URL
+                  r2Key,
+                  fileSize, // Actual file size
+                  mime_type,
+                  category.toLowerCase().replace(/\s+/g, '_')
+                ]);
+                
+                console.log(`📄 Created document record: ${cleanFilename} → ${r2Url}`);
+                results.documents_uploaded++;
+                
+              } catch (uploadError) {
+                console.error(`❌ R2 upload failed for ${cleanFilename}:`, uploadError.message);
+                results.errors.push(`Document upload ${cleanFilename}: ${uploadError.message}`);
+              }
+              
+            } catch (docError) {
+              console.error(`❌ Document processing error:`, docError.message);
+              results.errors.push(`Document processing: ${docError.message}`);
+            }
+          }
+        }
+        // LEGACY FORMAT: Handle file paths (backward compatibility)
+        else if (tank.document_ids && tank.document_ids.length > 0) {
+          console.log(`📄 Processing ${tank.document_ids.length} documents with legacy file paths`);
+          
           for (const documentPath of tank.document_ids) {
             try {
               // Skip if already uploaded (contains http/https)
@@ -1328,32 +1414,32 @@ app.post('/api/intake-sync', async (req, res) => {
               const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
               const r2Key = `intake/${year}/${month}/${category.toLowerCase().replace(/\s+/g, '_')}/${filename}`;
               
-              // Create document record (placeholder for now)
-              const documentResult = await pool.query(`
-                INSERT INTO tank_documents (
-                  linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
-                  doc_type, created_at
-                ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-                RETURNING id
-              `, [
-                [tankId], // Array of linked tank UUIDs
-                cleanFilename,
-                cleanFilename,
-                r2Key, // Use r2Key as file_path for now
-                r2Key,
-                0, // File size placeholder
-                'application/pdf',
-                category.toLowerCase().replace(/\s+/g, '_')
-              ]);
-              
-              console.log(`📄 Created document record: ${cleanFilename}`);
-              
               // Check if this is a local file path (from intake agent)
               if (documentPath.startsWith('local://')) {
-                console.log(`⚠️ Skipping local file path upload: ${cleanFilename}`);
-                console.log(`📝 Database record created, file upload skipped for local path`);
-                // For local paths, we'll skip upload but keep the database record
-                // This allows tank sync to succeed while we fix document upload separately
+                console.log(`⚠️ LEGACY: Skipping local file path (use documents_content format): ${cleanFilename}`);
+                console.log(`📝 Database record created as placeholder, no file upload`);
+                
+                // Create placeholder record
+                const documentResult = await pool.query(`
+                  INSERT INTO tank_documents (
+                    linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                    doc_type, created_at
+                  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+                  RETURNING id
+                `, [
+                  [tankId], // Array of linked tank UUIDs
+                  cleanFilename,
+                  cleanFilename,
+                  'PENDING_UPLOAD', // Placeholder
+                  r2Key,
+                  0, // File size placeholder
+                  'application/pdf',
+                  category.toLowerCase().replace(/\s+/g, '_')
+                ]);
+                
+                console.log(`📄 Created placeholder record: ${cleanFilename}`);
+                // DON'T increment documents_uploaded for skipped files
+                
               } else {
                 // Actually upload file to R2 (for non-local paths)
                 try {
@@ -1368,19 +1454,33 @@ app.post('/api/intake-sync', async (req, res) => {
                   await s3Client.send(uploadCommand);
                   console.log(`✅ Uploaded to R2: ${r2Key}`);
                   
-                  // Update database record with actual file size
-                  await pool.query(`
-                    UPDATE tank_documents SET file_size = $1 WHERE id = $2
-                  `, [fileBuffer.length, documentResult.rows[0].id]);
+                  // Create document record
+                  const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
+                  const documentResult = await pool.query(`
+                    INSERT INTO tank_documents (
+                      linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                      doc_type, created_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+                    RETURNING id
+                  `, [
+                    [tankId], // Array of linked tank UUIDs
+                    cleanFilename,
+                    cleanFilename,
+                    r2Url, // Use actual R2 URL
+                    r2Key,
+                    fileBuffer.length, // Actual file size
+                    'application/pdf',
+                    category.toLowerCase().replace(/\s+/g, '_')
+                  ]);
+                  
+                  console.log(`📄 Created document record: ${cleanFilename} → ${r2Url}`);
+                  results.documents_uploaded++;
                   
                 } catch (uploadError) {
                   console.error(`❌ R2 upload failed for ${cleanFilename}:`, uploadError.message);
-                  // Keep database record but log the upload failure
                   results.errors.push(`Document upload ${cleanFilename}: ${uploadError.message}`);
                 }
               }
-              
-              results.documents_uploaded++;
               
             } catch (docError) {
               console.error(`❌ Document error for ${documentPath}:`, docError.message);
