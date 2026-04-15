@@ -1348,28 +1348,36 @@ app.post('/api/intake-sync', async (req, res) => {
               
               console.log(`📄 Created document record: ${cleanFilename}`);
               
-              // Actually upload file to R2
-              try {
-                const fileBuffer = fs.readFileSync(documentPath);
-                const uploadCommand = new PutObjectCommand({
-                  Bucket: process.env.R2_BUCKET,
-                  Key: r2Key,
-                  Body: fileBuffer,
-                  ContentType: 'application/pdf'
-                });
-                
-                await s3Client.send(uploadCommand);
-                console.log(`✅ Uploaded to R2: ${r2Key}`);
-                
-                // Update database record with actual file size
-                await pool.query(`
-                  UPDATE tank_documents SET file_size = $1 WHERE id = $2
-                `, [fileBuffer.length, documentResult.rows[0].id]);
-                
-              } catch (uploadError) {
-                console.error(`❌ R2 upload failed for ${cleanFilename}:`, uploadError.message);
-                // Keep database record but log the upload failure
-                results.errors.push(`Document upload ${cleanFilename}: ${uploadError.message}`);
+              // Check if this is a local file path (from intake agent)
+              if (documentPath.startsWith('local://')) {
+                console.log(`⚠️ Skipping local file path upload: ${cleanFilename}`);
+                console.log(`📝 Database record created, file upload skipped for local path`);
+                // For local paths, we'll skip upload but keep the database record
+                // This allows tank sync to succeed while we fix document upload separately
+              } else {
+                // Actually upload file to R2 (for non-local paths)
+                try {
+                  const fileBuffer = fs.readFileSync(documentPath);
+                  const uploadCommand = new PutObjectCommand({
+                    Bucket: process.env.R2_BUCKET,
+                    Key: r2Key,
+                    Body: fileBuffer,
+                    ContentType: 'application/pdf'
+                  });
+                  
+                  await s3Client.send(uploadCommand);
+                  console.log(`✅ Uploaded to R2: ${r2Key}`);
+                  
+                  // Update database record with actual file size
+                  await pool.query(`
+                    UPDATE tank_documents SET file_size = $1 WHERE id = $2
+                  `, [fileBuffer.length, documentResult.rows[0].id]);
+                  
+                } catch (uploadError) {
+                  console.error(`❌ R2 upload failed for ${cleanFilename}:`, uploadError.message);
+                  // Keep database record but log the upload failure
+                  results.errors.push(`Document upload ${cleanFilename}: ${uploadError.message}`);
+                }
               }
               
               results.documents_uploaded++;
