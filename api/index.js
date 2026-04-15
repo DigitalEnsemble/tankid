@@ -1201,29 +1201,47 @@ app.post('/api/intake-sync', async (req, res) => {
           console.log(`✅ Found existing facility: ${facilityData.name} (${facilityId})`);
         }
         
-        // Create site_location
-        const siteResult = await pool.query(`
-          INSERT INTO site_locations (facility_id, site_name, description, created_at)
-          VALUES ($1, $2, $3, NOW())
-          ON CONFLICT (facility_id, site_name) 
-          DO UPDATE SET description = $3
-          RETURNING id
-        `, [facilityId, 'Main Site', facilityData.address]);
-        const siteLocationId = siteResult.rows[0].id;
+        // Create site_location (check for existing first)
+        let siteLocationId;
+        const existingSite = await pool.query(`
+          SELECT id FROM site_locations WHERE facility_id = $1 AND site_name = $2
+        `, [facilityId, 'Main Site']);
         
-        // Create tank_model
-        const tankModelResult = await pool.query(`
-          INSERT INTO tank_models (id, model_name, manufacturer, capacity_gallons, created_at)
-          VALUES (uuid_generate_v4(), $1, $2, $3, NOW())
-          ON CONFLICT (model_name, manufacturer, capacity_gallons)
-          DO UPDATE SET model_name = $1
-          RETURNING id
-        `, [
-          tank.extracted_data?.tank_model || 'Unknown Model',
-          tank.extracted_data?.manufacturer || 'Unknown',
-          parseInt(tank.extracted_data?.capacity_gallons) || 0
-        ]);
-        const tankModelId = tankModelResult.rows[0].id;
+        if (existingSite.rows.length > 0) {
+          siteLocationId = existingSite.rows[0].id;
+          console.log(`✅ Found existing site location: ${siteLocationId}`);
+        } else {
+          const siteResult = await pool.query(`
+            INSERT INTO site_locations (facility_id, site_name, description, created_at)
+            VALUES ($1, $2, $3, NOW())
+            RETURNING id
+          `, [facilityId, 'Main Site', facilityData.address]);
+          siteLocationId = siteResult.rows[0].id;
+          console.log(`✅ Created new site location: ${siteLocationId}`);
+        }
+        
+        // Create tank_model (check for existing first)
+        let tankModelId;
+        const modelName = tank.extracted_data?.tank_model || 'Unknown Model';
+        const manufacturer = tank.extracted_data?.manufacturer || 'Unknown';
+        const capacityGallons = parseInt(tank.extracted_data?.capacity_gallons) || 0;
+        
+        const existingModel = await pool.query(`
+          SELECT id FROM tank_models WHERE model_name = $1 AND manufacturer = $2 AND capacity_gallons = $3
+        `, [modelName, manufacturer, capacityGallons]);
+        
+        if (existingModel.rows.length > 0) {
+          tankModelId = existingModel.rows[0].id;
+          console.log(`✅ Found existing tank model: ${tankModelId}`);
+        } else {
+          const tankModelResult = await pool.query(`
+            INSERT INTO tank_models (id, model_name, manufacturer, capacity_gallons, created_at)
+            VALUES (uuid_generate_v4(), $1, $2, $3, NOW())
+            RETURNING id
+          `, [modelName, manufacturer, capacityGallons]);
+          tankModelId = tankModelResult.rows[0].id;
+          console.log(`✅ Created new tank model: ${tankModelId}`);
+        }
         
         // Check for existing tank first
         let existingTank = await pool.query(`
