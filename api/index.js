@@ -1256,6 +1256,7 @@ app.post('/api/intake-sync', async (req, res) => {
           // Update existing tank
           const updateTank = await pool.query(`
             UPDATE tanks SET 
+              install_date = $2,
               last_inspection_date = $3,
               updated_at = NOW()
             WHERE id = $1
