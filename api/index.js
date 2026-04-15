@@ -1364,4 +1364,4 @@ app.listen(PORT, () => {
     accessKey: process.env.R2_ACCESS_KEY ? '✓ Set' : '✗ Missing',
     secretKey: process.env.R2_SECRET_KEY ? '✓ Set' : '✗ Missing'
   });
-});# Force deployment refresh
+});
