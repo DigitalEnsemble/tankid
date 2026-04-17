@@ -24,7 +24,7 @@ const { migrateToV2Schema } = require('./migrate-v2-schema');
 const { checkSchemaState } = require('./check-schema');
 const { completeV2Migration } = require('./complete-v2-migration');
 const { debugSchemaDetails } = require('./debug-schema');
-const { getFacilityDeletionPreview, deleteFacility, config } = require('./delete-facility');
+const { getFacilityDeletionPreview, deleteFacility, extractR2Key } = require('./delete-facility-v2');
 
 const app = express();
 
