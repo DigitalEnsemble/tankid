@@ -24,6 +24,7 @@ const { migrateToV2Schema } = require('./migrate-v2-schema');
 const { checkSchemaState } = require('./check-schema');
 const { completeV2Migration } = require('./complete-v2-migration');
 const { debugSchemaDetails } = require('./debug-schema');
+const { getFacilityDeletionPreview, deleteFacility, config } = require('./delete-facility');
 
 const app = express();
 
@@ -285,6 +286,41 @@ app.get('/lookup/facility/:id', async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Facility deletion endpoints
+app.get('/facility/:id/deletion-preview', async (req, res) => {
+  try {
+    const facilityId = req.params.id;
+    const preview = await getFacilityDeletionPreview(facilityId);
+    res.json(preview);
+  } catch (error) {
+    console.error('Deletion preview error:', error);
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
+  }
+});
+
+app.delete('/facility/:id', async (req, res) => {
+  try {
+    const facilityId = req.params.id;
+    const options = req.body || {};
+    
+    const result = await deleteFacility(facilityId, options);
+    res.json(result);
+  } catch (error) {
+    console.error('Deletion error:', error);
+    if (error.message.includes('not found')) {
+      res.status(404).json({ error: error.message });
+    } else if (error.message.includes('confirmation')) {
+      res.status(400).json({ error: error.message });
+    } else {
+      res.status(500).json({ error: error.message });
+    }
   }
 });
 
