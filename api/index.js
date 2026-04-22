@@ -45,12 +45,12 @@ app.use((req, res, next) => {
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// API key auth for destructive/admin endpoints. Key provided via Doppler-managed API_KEY env var.
+// API key auth for destructive/admin endpoints. Key provided via Doppler-managed ADMIN_API_KEY env var.
 // Clients send it as `X-API-Key: <key>` or `Authorization: Bearer <key>`.
 function requireApiKey(req, res, next) {
-  const expected = process.env.API_KEY;
+  const expected = process.env.ADMIN_API_KEY;
   if (!expected) {
-    console.error('API_KEY env var is not set; refusing destructive request');
+    console.error('ADMIN_API_KEY env var is not set; refusing destructive request');
     return res.status(503).json({ error: 'Server auth not configured' });
   }
   const header = req.get('x-api-key');

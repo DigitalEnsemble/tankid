@@ -21,11 +21,10 @@ class HTTPIntakeSyncManager:
         self.api_url = api_url.rstrip('/')
         self.dry_run = dry_run
         self.sync_endpoint = f"{self.api_url}/api/intake-sync"
-        self.api_key = api_key or os.environ.get('TANKID_API_KEY') or os.environ.get('API_KEY')
+        self.api_key = api_key or os.environ.get('ADMIN_API_KEY') or os.environ.get('TANKID_API_KEY')
         if not self.api_key:
             raise RuntimeError(
-                "Missing API key. Set TANKID_API_KEY (or API_KEY) env var, "
-                "or pass --api-key."
+                "Missing API key. Set ADMIN_API_KEY env var, or pass --api-key."
             )
     
     def read_file_as_base64(self, file_path):
@@ -153,7 +152,7 @@ def main():
     parser.add_argument('--api-url', default='https://tankid-api.fly.dev',
                        help='TankID API base URL')
     parser.add_argument('--api-key', default=None,
-                       help='TankID API key (defaults to TANKID_API_KEY env var)')
+                       help='TankID admin API key (defaults to ADMIN_API_KEY env var)')
 
     args = parser.parse_args()
 
