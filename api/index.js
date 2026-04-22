@@ -45,6 +45,23 @@ app.use((req, res, next) => {
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
+// API key auth for destructive/admin endpoints. Key provided via Doppler-managed API_KEY env var.
+// Clients send it as `X-API-Key: <key>` or `Authorization: Bearer <key>`.
+function requireApiKey(req, res, next) {
+  const expected = process.env.API_KEY;
+  if (!expected) {
+    console.error('API_KEY env var is not set; refusing destructive request');
+    return res.status(503).json({ error: 'Server auth not configured' });
+  }
+  const header = req.get('x-api-key');
+  const bearer = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+  const provided = header || bearer;
+  if (!provided || provided !== expected) {
+    return res.status(401).json({ error: 'Unauthorized' });
+  }
+  next();
+}
+
 // R2/S3 client configuration
 const s3Client = new S3Client({
   region: 'auto',
@@ -209,7 +226,7 @@ app.get('/search', async (req, res) => {
 });
 
 // Temporary admin endpoint to update client_facility_id
-app.post('/admin/update-facility-client-id', async (req, res) => {
+app.post('/admin/update-facility-client-id', requireApiKey, async (req, res) => {
   try {
     const { facility_id, client_facility_id } = req.body;
     
@@ -305,7 +322,7 @@ app.get('/facility/:id/deletion-preview', async (req, res) => {
   }
 });
 
-app.delete('/facility/:id', async (req, res) => {
+app.delete('/facility/:id', requireApiKey, async (req, res) => {
   try {
     const facilityId = req.params.id;
     const options = req.body || {};
@@ -325,7 +342,7 @@ app.delete('/facility/:id', async (req, res) => {
 });
 
 // Load TankID seed data endpoint
-app.get('/load-tankid-seed', async (req, res) => {
+app.get('/load-tankid-seed', requireApiKey, async (req, res) => {
   try {
     const result = await loadTankIDSeedData();
     res.json(result);
@@ -367,7 +384,7 @@ app.get('/check-schema', async (req, res) => {
 });
 
 // Complete partial v2 migration (recovery)
-app.get('/complete-v2-migration', async (req, res) => {
+app.get('/complete-v2-migration', requireApiKey, async (req, res) => {
   try {
     const result = await completeV2Migration();
     res.json(result);
@@ -381,7 +398,7 @@ app.get('/complete-v2-migration', async (req, res) => {
 });
 
 // Migrate to v2 schema endpoint (full migration from v1)
-app.get('/migrate-v2-schema', async (req, res) => {
+app.get('/migrate-v2-schema', requireApiKey, async (req, res) => {
   try {
     const result = await migrateToV2Schema();
     res.json(result);
@@ -395,7 +412,7 @@ app.get('/migrate-v2-schema', async (req, res) => {
 });
 
 // Quick fix for 1643 facility
-app.get('/quick-fix-1643', async (req, res) => {
+app.get('/quick-fix-1643', requireApiKey, async (req, res) => {
   try {
     const result = await quickFix1643();
     res.json(result);
@@ -409,7 +426,7 @@ app.get('/quick-fix-1643', async (req, res) => {
 });
 
 // Add comprehensive tanks to 1643 facility
-app.get('/add-comprehensive-tanks', async (req, res) => {
+app.get('/add-comprehensive-tanks', requireApiKey, async (req, res) => {
   try {
     const result = await addComprehensiveTanks();
     res.json(result);
@@ -423,7 +440,7 @@ app.get('/add-comprehensive-tanks', async (req, res) => {
 });
 
 // Create documents table and upload tank documents
-app.get('/upload-tank-documents', async (req, res) => {
+app.get('/upload-tank-documents', requireApiKey, async (req, res) => {
   try {
     const result = await createDocumentsTable();
     res.json(result);
@@ -437,7 +454,7 @@ app.get('/upload-tank-documents', async (req, res) => {
 });
 
 // Simple document setup check
-app.get('/setup-documents', async (req, res) => {
+app.get('/setup-documents', requireApiKey, async (req, res) => {
   try {
     const result = await simpleUploadDocs();
     res.json(result);
@@ -451,7 +468,7 @@ app.get('/setup-documents', async (req, res) => {
 });
 
 // Create document records
-app.get('/create-doc-records', async (req, res) => {
+app.get('/create-doc-records', requireApiKey, async (req, res) => {
   try {
     const result = await createDocRecords();
     res.json(result);
@@ -479,7 +496,7 @@ app.get('/check-docs-table', async (req, res) => {
 });
 
 // Create tank documents with proper table
-app.get('/create-tank-docs', async (req, res) => {
+app.get('/create-tank-docs', requireApiKey, async (req, res) => {
   try {
     const result = await createTankDocs();
     res.json(result);
@@ -496,7 +513,7 @@ app.get('/create-tank-docs', async (req, res) => {
 // Will be re-enabled after fixing module loading issues
 
 // Migrate to comprehensive schema
-app.get('/migrate-comprehensive', async (req, res) => {
+app.get('/migrate-comprehensive', requireApiKey, async (req, res) => {
   try {
     const result = await migrateComprehensiveSchema();
     res.json(result);
@@ -510,7 +527,7 @@ app.get('/migrate-comprehensive', async (req, res) => {
 });
 
 // Load comprehensive data
-app.get('/load-comprehensive', async (req, res) => {
+app.get('/load-comprehensive', requireApiKey, async (req, res) => {
   try {
     const result = await loadComprehensiveData();
     res.json(result);
@@ -524,7 +541,7 @@ app.get('/load-comprehensive', async (req, res) => {
 });
 
 // Enhance existing tanks with detailed specifications
-app.get('/enhance-tanks', async (req, res) => {
+app.get('/enhance-tanks', requireApiKey, async (req, res) => {
   try {
     const result = await enhanceExistingTanks();
     res.json(result);
@@ -538,7 +555,7 @@ app.get('/enhance-tanks', async (req, res) => {
 });
 
 // Load enhanced TankID seed data with full specifications
-app.get('/load-enhanced-seed', async (req, res) => {
+app.get('/load-enhanced-seed', requireApiKey, async (req, res) => {
   try {
     const result = await loadEnhancedTankIDSeedData();
     res.json(result);
@@ -552,7 +569,7 @@ app.get('/load-enhanced-seed', async (req, res) => {
 });
 
 // Migrate to UUIDs endpoint
-app.get('/migrate-to-uuids', async (req, res) => {
+app.get('/migrate-to-uuids', requireApiKey, async (req, res) => {
   try {
     const result = await migrateToUUIDs();
     res.json(result);
@@ -566,7 +583,7 @@ app.get('/migrate-to-uuids', async (req, res) => {
 });
 
 // Run R2 database migration
-app.post('/migrate/add-r2-key', async (req, res) => {
+app.post('/migrate/add-r2-key', requireApiKey, async (req, res) => {
   try {
     console.log('🚀 Starting R2 migration: add r2_key column');
     
@@ -629,7 +646,7 @@ app.post('/migrate/add-r2-key', async (req, res) => {
 });
 
 // Upload documents to R2 endpoint  
-app.post('/migrate/upload-to-r2', async (req, res) => {
+app.post('/migrate/upload-to-r2', requireApiKey, async (req, res) => {
   try {
     console.log('🚀 Starting file upload to R2...');
     
@@ -653,7 +670,7 @@ app.post('/migrate/upload-to-r2', async (req, res) => {
 });
 
 // Documents migration to R2 endpoint
-app.post('/migrate/documents-to-r2', async (req, res) => {
+app.post('/migrate/documents-to-r2', requireApiKey, async (req, res) => {
   try {
     console.log('🚀 Starting document migration to R2...');
     
@@ -1171,7 +1188,7 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
 });
 
 // Intake Agent Sync Endpoint
-app.post('/api/intake-sync', async (req, res) => {
+app.post('/api/intake-sync', requireApiKey, async (req, res) => {
   try {
     console.log('🚀 Intake sync request received');
     

@@ -1,3 +1,0 @@
-module.exports=[29580,a=>{"use strict";var b=a.i(71003);a.s(["default",0,function({children:a}){return(0,b.jsx)("html",{lang:"en",children:(0,b.jsx)("body",{children:a})})},"metadata",0,{title:"TankID.io - Universal Storage Tank Registry | AST & UST Compliance",description:"The universal registry for above ground and underground storage tanks. Scan the QR label for full tank specs in seconds. No app download required.",keywords:"storage tank, UST, AST, compliance, tank registry, QR code, field technicians, facility management"}])},34465,a=>{a.n(a.i(29580))}];
-
-//# sourceMappingURL=deployment-final_web_src_app_layout_tsx_0~ice0_._.js.map

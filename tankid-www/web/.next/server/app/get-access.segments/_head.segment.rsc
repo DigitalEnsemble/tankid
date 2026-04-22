@@ -1,6 +1,0 @@
-1:"$Sreact.fragment"
-2:I[44315,["/_next/static/chunks/00_xgp~mlkvpk.js","/_next/static/chunks/11iqw2vk3zz2a.js"],"ViewportBoundary"]
-3:I[44315,["/_next/static/chunks/00_xgp~mlkvpk.js","/_next/static/chunks/11iqw2vk3zz2a.js"],"MetadataBoundary"]
-4:"$Sreact.suspense"
-5:I[6093,["/_next/static/chunks/00_xgp~mlkvpk.js","/_next/static/chunks/11iqw2vk3zz2a.js"],"IconMark"]
-0:{"rsc":["$","$1","h",{"children":[null,["$","$L2",null,{"children":[["$","meta","0",{"charSet":"utf-8"}],["$","meta","1",{"name":"viewport","content":"width=device-width, initial-scale=1"}]]}],["$","div",null,{"hidden":true,"children":["$","$L3",null,{"children":["$","$4",null,{"name":"Next.Metadata","children":[["$","title","0",{"children":"TankID.io - Universal Storage Tank Registry | AST & UST Compliance"}],["$","meta","1",{"name":"description","content":"The universal registry for above ground and underground storage tanks. Scan the QR label for full tank specs in seconds. No app download required."}],["$","meta","2",{"name":"keywords","content":"storage tank, UST, AST, compliance, tank registry, QR code, field technicians, facility management"}],["$","link","3",{"rel":"icon","href":"/icon?09552e8ec99137e3","type":"image/png","sizes":"32x32"}],["$","$L5","4",{}]]}]}]}],null]}],"isPartial":false,"staleTime":300,"varyParams":null,"buildId":"JMzpZAvqqBSRkwlnkvL83"}

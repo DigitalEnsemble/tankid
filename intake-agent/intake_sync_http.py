@@ -17,10 +17,16 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message
 logger = logging.getLogger(__name__)
 
 class HTTPIntakeSyncManager:
-    def __init__(self, api_url="https://tankid-api.fly.dev", dry_run=False):
+    def __init__(self, api_url="https://tankid-api.fly.dev", dry_run=False, api_key=None):
         self.api_url = api_url.rstrip('/')
         self.dry_run = dry_run
         self.sync_endpoint = f"{self.api_url}/api/intake-sync"
+        self.api_key = api_key or os.environ.get('TANKID_API_KEY') or os.environ.get('API_KEY')
+        if not self.api_key:
+            raise RuntimeError(
+                "Missing API key. Set TANKID_API_KEY (or API_KEY) env var, "
+                "or pass --api-key."
+            )
     
     def read_file_as_base64(self, file_path):
         """Read local file and convert to base64"""
@@ -107,7 +113,10 @@ class HTTPIntakeSyncManager:
         
         try:
             # Make HTTP request to sync endpoint
-            headers = {'Content-Type': 'application/json'}
+            headers = {
+                'Content-Type': 'application/json',
+                'X-API-Key': self.api_key,
+            }
             response = requests.post(
                 self.sync_endpoint,
                 json=payload,
@@ -143,18 +152,21 @@ def main():
                        help='Test sync without making actual changes')
     parser.add_argument('--api-url', default='https://tankid-api.fly.dev',
                        help='TankID API base URL')
-    
+    parser.add_argument('--api-key', default=None,
+                       help='TankID API key (defaults to TANKID_API_KEY env var)')
+
     args = parser.parse_args()
-    
+
     print(f"🚀 TankID Intake Sync - API: {args.api_url}")
     print(f"🧪 Dry Run: {args.dry_run}")
     print("=" * 60)
-    
+
     sync_manager = HTTPIntakeSyncManager(
         api_url=args.api_url,
-        dry_run=args.dry_run
+        dry_run=args.dry_run,
+        api_key=args.api_key,
     )
-    
+
     result = sync_manager.sync_to_production()
     
     if result.get('success'):
