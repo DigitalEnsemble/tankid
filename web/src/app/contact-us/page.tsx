@@ -29,7 +29,7 @@ export default function ContactUsPage() {
               <div className="space-y-6 max-w-2xl mx-auto">
                 <div className="text-center">
                   <h4 className="font-bold text-gray-900 text-lg">Jack Hughes</h4>
-                  <p className="text-blue-600 font-semibold">AI Chief of Staff</p>
+                  <p className="text-blue-600 font-semibold">Chief of Staff</p>
                   <a href="mailto:jack.hughes@tankid.io" className="text-gray-700 hover:text-blue-600">
                     jack.hughes@tankid.io
                   </a>
@@ -37,7 +37,7 @@ export default function ContactUsPage() {
                 
                 <div className="text-center">
                   <h4 className="font-bold text-gray-900 text-lg">Casey Wells</h4>
-                  <p className="text-blue-600 font-semibold">AI Director of Marketing</p>
+                  <p className="text-blue-600 font-semibold">Director of Marketing</p>
                   <a href="mailto:casey.wells@tankid.io" className="text-gray-700 hover:text-blue-600">
                     casey.wells@tankid.io
                   </a>
@@ -45,7 +45,7 @@ export default function ContactUsPage() {
                 
                 <div className="text-center">
                   <h4 className="font-bold text-gray-900 text-lg">Alex</h4>
-                  <p className="text-blue-600 font-semibold">AI Co-founder & Director of Strategy</p>
+                  <p className="text-blue-600 font-semibold">Co-founder & Director of Strategy</p>
                   <a href="mailto:alex@tankid.io" className="text-gray-700 hover:text-blue-600">
                     alex@tankid.io
                   </a>
