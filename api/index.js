@@ -1384,11 +1384,9 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
                 continue;
               }
               
-              // Generate R2 key
-              const uploadDate = new Date();
-              const year = uploadDate.getFullYear();
-              const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
-              const r2Key = `intake/${year}/${month}/${category.toLowerCase().replace(/\s+/g, '_')}/${filename}`;
+              // Generate R2 key — canonical path: documents/<uuid>/<filename>
+              const docUuid = doc.document_uuid || require('crypto').randomUUID();
+              const r2Key = `documents/${docUuid}/${cleanFilename}`;
               
               // Convert base64 to buffer
               const fileBuffer = Buffer.from(content, 'base64');
@@ -1472,11 +1470,9 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
                 continue;
               }
               
-              // Generate R2 key
-              const uploadDate = new Date();
-              const year = uploadDate.getFullYear();
-              const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
-              const r2Key = `intake/${year}/${month}/${category.toLowerCase().replace(/\s+/g, '_')}/${filename}`;
+              // Generate R2 key — canonical path: documents/<uuid>/<filename>
+              const legacyDocUuid = require('crypto').randomUUID();
+              const r2Key = `documents/${legacyDocUuid}/${cleanFilename}`;
               
               // Check if this is a local file path (from intake agent)
               if (documentPath.startsWith('local://')) {
