@@ -12,6 +12,8 @@ import argparse
 from datetime import datetime
 import logging
 import os
+import shutil
+import glob
 import base64
 import uuid
 
@@ -275,9 +277,41 @@ def main():
         if not args.dry_run:
             print("📊 Check production database for updated data with corrected facility numbers")
             print("📄 Documents uploaded to corrected R2 paths: /documents/[uuid]/[filename]")
+            _purge_local_data()
     else:
         print(f"\n❌ Sync failed: {result.get('error')}")
         exit(1)
+
+
+def _purge_local_data():
+    """Purge all local intake data after successful production sync."""
+    base = os.path.dirname(os.path.abspath(__file__))
+    print("\n🗑️  Purging local intake data...")
+
+    # Clear local_storage batch directories
+    local_storage = os.path.join(base, 'local_storage')
+    if os.path.isdir(local_storage):
+        for entry in os.listdir(local_storage):
+            entry_path = os.path.join(local_storage, entry)
+            if os.path.isdir(entry_path):
+                shutil.rmtree(entry_path)
+        print(f"   ✅ Cleared local_storage/")
+
+    # Reset mock_data JSON files to empty arrays
+    mock_data = os.path.join(base, 'mock_data')
+    for fname in ['tanks.json', 'documents.json', 'batches.json']:
+        fpath = os.path.join(mock_data, fname)
+        if os.path.exists(fpath):
+            with open(fpath, 'w') as f:
+                f.write('[]')
+    print(f"   ✅ Reset mock_data/ JSON files")
+
+    # Remove backup files
+    for bak in glob.glob(os.path.join(mock_data, 'tanks_backup_*.json')):
+        os.remove(bak)
+        print(f"   🗑️  Removed {os.path.basename(bak)}")
+
+    print("✅ Local data purged. Ready for next intake batch.\n")
 
 if __name__ == "__main__":
     main()
