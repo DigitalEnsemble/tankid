@@ -185,12 +185,13 @@ export default function ForTechniciansPage() {
               
               <div className="flex justify-center">
                 <Image
-                  src="/images/tankid logo 6.jpg"
-                  alt="TankID QR Label"
-                  width={350}
-                  height={400}
-                  className="rounded-lg shadow-lg object-cover w-full max-w-xs sm:max-w-sm"
-                  sizes="(max-width: 480px) 280px, (max-width: 768px) 320px, 350px"
+                  src="/images/tankidqrcodephone.jpg"
+                  alt="Scan a QR code to access tank data instantly on your phone"
+                  width={600}
+                  height={450}
+                  className="rounded-lg shadow-lg object-contain w-full max-w-sm sm:max-w-md lg:max-w-full"
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 600px"
+                  priority
                 />
               </div>
             </div>
