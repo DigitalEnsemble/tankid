@@ -1217,7 +1217,9 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           name: tank.extracted_data?.facility_name || tank.facility_name,
           address: tank.extracted_data?.facility_address || tank.facility_address,
           state: tank.extracted_data?.facility_state || tank.facility_state,
-          phone: tank.extracted_data?.facility_phone || tank.facility_phone
+          phone: tank.extracted_data?.facility_phone || tank.facility_phone,
+          client_facility_id: tank.extracted_data?.client_facility_id || tank.client_facility_id ||
+            (tank.client_facility_number ? String(tank.client_facility_number) : null)
         };
         
         if (dry_run) {
@@ -1239,14 +1241,15 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           // Create new facility
           console.log(`🏢 Creating new facility: ${facilityData.name}`);
           const insertFacility = await pool.query(`
-            INSERT INTO facilities (id, name, address, city, state, state_code, state_facility_id, created_at)
-            VALUES (uuid_generate_v4(), $1, $2, $3, $4, $4, $1, NOW())
+            INSERT INTO facilities (id, name, address, city, state, state_code, state_facility_id, client_facility_id, created_at)
+            VALUES (uuid_generate_v4(), $1, $2, $3, $4, $4, $1, $5, NOW())
             RETURNING id
           `, [
             facilityData.name,
             facilityData.address,
-            tank.extracted_data?.facility_city || '',
-            facilityData.state || 'CO'
+            tank.extracted_data?.facility_city || tank.facility_city || '',
+            facilityData.state || 'CO',
+            facilityData.client_facility_id || null
           ]);
           facilityId = insertFacility.rows[0].id;
           results.facilities_synced++;
@@ -1254,6 +1257,14 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
         } else {
           facilityId = facilityResult.rows[0].id;
           console.log(`✅ Found existing facility: ${facilityData.name} (${facilityId})`);
+          // Backfill client_facility_id if missing and we have it in the payload
+          if (facilityData.client_facility_id && !facilityResult.rows[0].client_facility_id) {
+            await pool.query(
+              'UPDATE facilities SET client_facility_id = $1 WHERE id = $2',
+              [facilityData.client_facility_id, facilityId]
+            );
+            console.log(`🔧 Backfilled client_facility_id=${facilityData.client_facility_id} on existing facility ${facilityId}`);
+          }
         }
         
         // Create site_location (check for existing first)
