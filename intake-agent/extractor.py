@@ -280,20 +280,28 @@ Classify as ONE of:
 
 **Tank Data to Extract:**
 - serial_number: Tank serial number
+- tank_id: Tank identifier as labeled on the document (e.g. FL-2001-01, Tank 1, T-001)
 - tank_type: Underground storage tank (UST) or above-ground storage tank (AST)
 - manufacturer: Tank manufacturer name
 - material: Tank material (steel, fiberglass, etc.)
 - capacity_gallons: Tank capacity in gallons
 - installation_date: Installation date (YYYY-MM-DD format)
-- facility_name: Facility/business name
-- facility_address: Complete facility address
-- facility_city: City name
-- facility_state: State abbreviation
-- facility_zip: ZIP code
 - contents: What the tank stores (gasoline, diesel, etc.)
 - dimensions: Tank dimensions (length x width x height)
-- coating_type: Tank coating or protection type
+- coating_type: Tank coating or corrosion protection type
 - monitoring_system: Leak detection/monitoring system type
+
+**Facility Data to Extract:**
+- facility_name: Facility/business name
+- facility_address: Complete street address
+- facility_city: City name
+- facility_state: State abbreviation (2 letters)
+- facility_zip: ZIP code
+- facility_county: County name if present
+- facility_type: Type of facility (e.g. fuel depot, gas station, industrial, hospital)
+- client_facility_id: Facility ID or number assigned by the client/owner (e.g. FL-2001, 1005, FAC-003)
+- state_facility_id: Facility ID or number assigned by the state regulator if present
+- owner_name: Name of the facility owner or operator if present
 
 **Response Format:**
 Return ONLY valid JSON:
@@ -303,8 +311,26 @@ Return ONLY valid JSON:
   "confidence": 0.85,
   "extracted_data": {
     "serial_number": "value or null",
+    "tank_id": "value or null",
     "tank_type": "value or null",
-    ... other fields ...
+    "manufacturer": "value or null",
+    "material": "value or null",
+    "capacity_gallons": "value or null",
+    "installation_date": "value or null",
+    "contents": "value or null",
+    "dimensions": "value or null",
+    "coating_type": "value or null",
+    "monitoring_system": "value or null",
+    "facility_name": "value or null",
+    "facility_address": "value or null",
+    "facility_city": "value or null",
+    "facility_state": "value or null",
+    "facility_zip": "value or null",
+    "facility_county": "value or null",
+    "facility_type": "value or null",
+    "client_facility_id": "value or null",
+    "state_facility_id": "value or null",
+    "owner_name": "value or null"
   },
   "reasoning": "Brief explanation of classification and key findings"
 }
