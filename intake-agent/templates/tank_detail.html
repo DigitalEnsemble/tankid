@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankID - Tank {{ tank.serial_number }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .tank-header {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+        .tank-header::before {
+            content: '🛢️';
+            font-size: 3em;
+            position: absolute;
+            right: 30px;
+            top: 50%;
+            transform: translateY(-50%);
+            opacity: 0.3;
+        }
+        .tank-serial {
+            font-size: 2.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .tank-status {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .sections {
+            display: grid;
+            gap: 30px;
+        }
+        .section {
+            background: #f8fafc;
+            border-radius: 12px;
+            padding: 25px;
+            border: 1px solid #e5e7eb;
+        }
+        .section-title {
+            font-size: 1.4em;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        .detail-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .detail-label {
+            font-size: 0.85em;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+        }
+        .detail-value {
+            font-size: 1.1em;
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .documents-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        .document-item {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.3s ease;
+        }
+        .document-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border-color: #3b82f6;
+        }
+        .document-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .document-icon {
+            font-size: 1.5em;
+        }
+        .document-name {
+            font-weight: 600;
+            color: #1f2937;
+            flex: 1;
+        }
+        .document-type {
+            background: #3b82f6;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .document-details {
+            color: #6b7280;
+            font-size: 0.9em;
+        }
+        .confidence-meter {
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+        .confidence-fill {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .confidence-text {
+            font-size: 0.85em;
+            color: #6b7280;
+            text-align: center;
+        }
+        .nav-link {
+            color: #3b82f6;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        .facility-link {
+            color: #3b82f6;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .facility-link:hover {
+            text-decoration: underline;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        {% if tank.facility_name %}
+        <a href="/facility/{{ (tank.facility_name + '-' + (tank.facility_address or '')).lower().replace(' ', '-').replace(',', '') }}" class="nav-link">
+            ← Back to {{ tank.facility_name }}
+        </a>
+        {% else %}
+        <a href="/facilities" class="nav-link">← Back to Facilities</a>
+        {% endif %}
+        
+        <div class="tank-header">
+            <div class="tank-serial">Tank {{ tank.serial_number }}</div>
+            <div class="tank-status">✅ APPROVED</div>
+        </div>
+        
+        <div class="sections">
+            <!-- Tank Specifications -->
+            <div class="section">
+                <div class="section-title">
+                    ⚙️ Tank Specifications
+                </div>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Manufacturer</div>
+                        <div class="detail-value">{{ tank.manufacturer or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Capacity</div>
+                        <div class="detail-value">{{ tank.capacity_gallons or 'Not specified' }}{% if tank.capacity_gallons %} gallons{% endif %}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Tank Type</div>
+                        <div class="detail-value">{{ tank.tank_type or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Material</div>
+                        <div class="detail-value">{{ tank.material or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Product Stored</div>
+                        <div class="detail-value">{{ tank.product_stored or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Year Manufactured</div>
+                        <div class="detail-value">{{ tank.year_manufactured or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Year Installed</div>
+                        <div class="detail-value">{{ tank.year_installed or 'Not specified' }}</div>
+                    </div>
+                </div>
+                
+                {% if tank.confidence_score %}
+                <div class="confidence-meter">
+                    <div class="confidence-fill" style="width: {{ (tank.confidence_score * 100)|round(1) }}%"></div>
+                </div>
+                <div class="confidence-text">{{ (tank.confidence_score * 100)|round(1) }}% extraction confidence</div>
+                {% endif %}
+            </div>
+            
+            <!-- Facility Information -->
+            <div class="section">
+                <div class="section-title">
+                    🏢 Facility Information
+                </div>
+                <div class="details-grid">
+                    <div class="detail-item">
+                        <div class="detail-label">Facility Name</div>
+                        <div class="detail-value">
+                            {% if tank.facility_name %}
+                                <a href="/facility/{{ (tank.facility_name + '-' + (tank.facility_address or '')).lower().replace(' ', '-').replace(',', '') }}" class="facility-link">
+                                    {{ tank.facility_name }}
+                                </a>
+                            {% else %}
+                                Not specified
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">Address</div>
+                        <div class="detail-value">{{ tank.facility_address or 'Not specified' }}</div>
+                    </div>
+                    <div class="detail-item">
+                        <div class="detail-label">State</div>
+                        <div class="detail-value">{{ tank.facility_state or 'Not specified' }}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Testing Information -->
+            {% if tank.last_test_date or tank.test_type or tank.test_result %}
+            <div class="section">
+                <div class="section-title">
+                    🔬 Testing Information
+                </div>
+                <div class="details-grid">
+                    {% if tank.last_test_date %}
+                    <div class="detail-item">
+                        <div class="detail-label">Last Test Date</div>
+                        <div class="detail-value">{{ tank.last_test_date }}</div>
+                    </div>
+                    {% endif %}
+                    {% if tank.test_type %}
+                    <div class="detail-item">
+                        <div class="detail-label">Test Type</div>
+                        <div class="detail-value">{{ tank.test_type }}</div>
+                    </div>
+                    {% endif %}
+                    {% if tank.test_result %}
+                    <div class="detail-item">
+                        <div class="detail-label">Test Result</div>
+                        <div class="detail-value">{{ tank.test_result }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Source Documents -->
+            <div class="section">
+                <div class="section-title">
+                    📄 Source Documents
+                </div>
+                {% if documents %}
+                    <div class="documents-grid">
+                        {% for doc in documents %}
+                        <div class="document-item">
+                            <div class="document-header">
+                                <div class="document-icon">📄</div>
+                                <div class="document-name">{{ doc.file_path.split('/')[-1] if doc.file_path else 'Unknown Document' }}</div>
+                                {% if doc.document_type %}
+                                <div class="document-type">{{ doc.document_type.replace('_', ' ').title() }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="document-details">
+                                {% if doc.confidence %}
+                                Confidence: {{ (doc.confidence * 100)|round(1) }}%<br>
+                                {% endif %}
+                                Processed: {{ doc.created_at.strftime('%b %d, %Y') if doc.created_at else 'Unknown' }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <h4>No source documents available</h4>
+                        <p>Document information may not be available for this tank.</p>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Additional Notes -->
+            {% if tank.notes %}
+            <div class="section">
+                <div class="section-title">
+                    📝 Notes
+                </div>
+                <div style="background: white; padding: 15px; border-radius: 8px; line-height: 1.6;">
+                    {{ tank.notes }}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

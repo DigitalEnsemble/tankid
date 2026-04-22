@@ -1,0 +1,212 @@
+[
+  {
+    "serial_number": "UST-12345-TEST",
+    "manufacturer": "Xerxes Corporation",
+    "capacity_gallons": 10000,
+    "year_manufactured": null,
+    "year_installed": null,
+    "tank_type": "Underground Storage Tank (UST)",
+    "material": "Fiberglass",
+    "product_stored": null,
+    "facility_name": "Littleton Hospital",
+    "facility_address": "660 South Broadway, Littleton, CO 80120",
+    "facility_state": "CO",
+    "last_test_date": null,
+    "test_type": null,
+    "test_result": null,
+    "notes": null,
+    "confidence_score": 1.0,
+    "sources": [
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-20T22-45-26.139Z_Capacity Chart.EAT12000FIREGUARD.20'11.5_x10'.SWRI318742 STI62914.docx.pdf",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-20 17:48:21.965505"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fac 1002_AST Tank Registration 1 of 2.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623723"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Tank Registration Form 2.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623732"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-3.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623735"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Re_Fac 1002 New AST Registration Form.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623737"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-3_Signed.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623740"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_INDEX.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623742"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-2_Unsigned.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623744"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-2.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623746"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fac 1002_AST Tank Registration_Signed.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623748"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-4_Signed.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623751"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-1_Unsigned.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623753"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fac 1002_AST Tank Registration 2 of 2.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623755"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-2_Signed.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623758"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-4_Unsigned.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623760"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-3_Unsigned.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623762"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Capacity Chart_TEST10024_2000GAL.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623764"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Capacity Chart_TEST10021_12000GAL.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623767"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-1_Signed.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623770"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_AST Installation Upgrade Application.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623772"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Capacity Chart_TEST10022_12000GAL.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623775"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-1.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623777"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Capacity Chart_TEST10023_2000GAL.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623787"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Tank Registration Form 1.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623790"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fac 1002 New AST Registration Form.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623792"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-21T16-35-27.466Z_Fireguard Warranty Validation Card_1002-4.md",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-21 11:42:46.623794"
+      }
+    ],
+    "batch_id": "5d75b99c-f44e-4859-98ec-81cca34b43fd",
+    "document_ids": [
+      "2b815409-8711-4e36-b50e-32f9f11fb46d",
+      "710cec29-a97c-4745-9f33-0806dd6871b6",
+      "9502663f-62fe-47bc-bc99-28cf891e737c",
+      "43a0acb9-92cb-498d-b022-d295b81d7013",
+      "8a36a62f-0792-47d2-87b8-c8abf0f00ebf",
+      "4c1bdd8f-6815-4b74-b6b6-d193273edaca",
+      "8b2c9221-c406-40a4-8f8c-a27a5cf5d0f4",
+      "b21c3698-1e0e-4fd3-b761-d860a698ca6d",
+      "f00ff321-33ad-4c7a-b8bb-a892d62922c5",
+      "21c6c947-ecbf-435d-a228-e56eea1c953c",
+      "f7ef5c60-5347-4e77-a3b1-1b871aa16962",
+      "f01e3b4e-5aa8-4b1b-aa27-f39c44cf859a",
+      "b0a437c3-9574-4319-b053-2840037db8e0",
+      "cd740734-12f8-461c-9733-7f9aec3edd61",
+      "56e3db34-1509-42ca-aa7f-99101e828b7d",
+      "62e97459-f404-407b-ac17-889906d651ab",
+      "f9b6d935-1d2d-4ee1-8375-1373564fa90c",
+      "c4e1ba44-a9fd-410f-9b4e-b30bab6a9ae9",
+      "78aeb2f6-7be8-4cdb-924c-7a1728506f53",
+      "8a508ae2-6177-48aa-9901-86dbde778a29",
+      "88bbb5b7-c7bb-45eb-8da4-156dc5e23cbe",
+      "91bb761b-3c04-48ba-ab87-ba3a5a3872ce",
+      "611fe77a-c877-4759-bcca-f68ec2ef05d2",
+      "a08bd79e-75c1-4081-8d82-2b18333a462a",
+      "56bd2a0a-ed16-428b-9af5-7cc336058fa3",
+      "46023b09-43e6-4a73-a761-6ed2c7d67529"
+    ],
+    "created_at": "2026-04-20 17:48:21.978657",
+    "status": "confirmed",
+    "id": "7cde4f40-93c1-40f2-a709-988d9630e87c",
+    "updated_at": "2026-04-21 11:42:46.708913",
+    "merge_count": 2
+  }
+]

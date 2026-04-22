@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TankID - {{ facility.name }}</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .facility-header {
+            background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+        .facility-name {
+            font-size: 2.2em;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .facility-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            opacity: 0.95;
+        }
+        .facility-info-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .facility-info-label {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            opacity: 0.8;
+        }
+        .facility-info-value {
+            font-size: 1.1em;
+            font-weight: 500;
+        }
+        .tanks-section {
+            margin-top: 30px;
+        }
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+        .section-title {
+            font-size: 1.5em;
+            color: #1f2937;
+            font-weight: 600;
+        }
+        .tank-count-badge {
+            background: #10b981;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        .tank-card {
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            padding: 25px;
+            background: #f8fafc;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .tank-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+            border-color: #3b82f6;
+        }
+        .tank-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .tank-serial {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .status-approved {
+            background: #10b981;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 16px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+        .tank-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+        }
+        .tank-detail-item {
+            display: flex;
+            flex-direction: column;
+        }
+        .tank-detail-label {
+            font-size: 0.8em;
+            font-weight: 500;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 4px;
+        }
+        .tank-detail-value {
+            color: #1f2937;
+            font-weight: 500;
+        }
+        .confidence-bar {
+            background: #e5e7eb;
+            height: 6px;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 15px;
+        }
+        .confidence-fill {
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        .confidence-text {
+            font-size: 0.85em;
+            color: #6b7280;
+            margin-top: 5px;
+        }
+        .nav-link {
+            color: #3b82f6;
+            text-decoration: none;
+            margin-bottom: 20px;
+            display: inline-block;
+            font-weight: 500;
+        }
+        .nav-link:hover {
+            text-decoration: underline;
+        }
+        .click-hint {
+            font-size: 0.85em;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/facilities" class="nav-link">← Back to Facilities</a>
+        
+        <div class="facility-header">
+            <div class="facility-name">🏢 {{ facility.name }}</div>
+            <div class="facility-info">
+                <div class="facility-info-item">
+                    <span class="facility-info-label">Address</span>
+                    <span class="facility-info-value">{{ facility.address }}</span>
+                </div>
+                <div class="facility-info-item">
+                    <span class="facility-info-label">State</span>
+                    <span class="facility-info-value">{{ facility.state }}</span>
+                </div>
+                <div class="facility-info-item">
+                    <span class="facility-info-label">Last Updated</span>
+                    <span class="facility-info-value">{{ facility.last_updated.strftime('%b %d, %Y at %I:%M %p') if facility.last_updated else 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tanks-section">
+            <div class="section-header">
+                <div class="section-title">🛢️ Tanks at this Facility</div>
+                <div class="tank-count-badge">{{ tanks|length }} Tank{{ 's' if tanks|length != 1 else '' }}</div>
+            </div>
+            
+            {% if tanks %}
+                {% for tank in tanks %}
+                <div class="tank-card" onclick="window.location.href='/tank/{{ tank.id }}'">
+                    <div class="tank-header">
+                        <div class="tank-serial">{{ tank.serial_number }}</div>
+                        <div class="status-approved">✅ APPROVED</div>
+                    </div>
+                    
+                    <div class="tank-details">
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Manufacturer</span>
+                            <span class="tank-detail-value">{{ tank.manufacturer or 'N/A' }}</span>
+                        </div>
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Capacity</span>
+                            <span class="tank-detail-value">{{ tank.capacity_gallons or 'N/A' }} gallons</span>
+                        </div>
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Type</span>
+                            <span class="tank-detail-value">{{ tank.tank_type or 'N/A' }}</span>
+                        </div>
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Material</span>
+                            <span class="tank-detail-value">{{ tank.material or 'N/A' }}</span>
+                        </div>
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Product</span>
+                            <span class="tank-detail-value">{{ tank.product_stored or 'N/A' }}</span>
+                        </div>
+                        <div class="tank-detail-item">
+                            <span class="tank-detail-label">Year Installed</span>
+                            <span class="tank-detail-value">{{ tank.year_installed or 'N/A' }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if tank.confidence_score %}
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" style="width: {{ (tank.confidence_score * 100)|round(1) }}%"></div>
+                    </div>
+                    <div class="confidence-text">{{ (tank.confidence_score * 100)|round(1) }}% extraction confidence</div>
+                    {% endif %}
+                    
+                    <div class="click-hint">Click to view detailed tank information and source documents →</div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <div style="text-align: center; padding: 40px; color: #6b7280;">
+                    <h3>No tanks found at this facility</h3>
+                    <p>Tank data may still be processing.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

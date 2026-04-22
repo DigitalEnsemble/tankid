@@ -1,0 +1,48 @@
+# Secrets and API Keys
+*.env
+.env.local
+.env.production
+.env.development
+**/ANTHROPIC_API_KEY*
+**/api_key*
+**/secrets*
+
+# Local storage and processing directories
+local_storage/
+processed/
+processing/
+failed/
+
+# Database backups
+mock_data/*backup*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp

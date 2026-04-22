@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Review Tank - TankID</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+        .header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .back-link {
+            color: #2563eb;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 300px;
+            gap: 20px;
+        }
+        .tank-details {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .documents-panel {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: fit-content;
+        }
+        .section-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 5px;
+            color: #374151;
+        }
+        .form-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: #2563eb;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+        .form-textarea {
+            height: 60px;
+            resize: vertical;
+        }
+        .confidence-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            margin-left: 10px;
+        }
+        .confidence-high {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .confidence-medium {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .confidence-low {
+            background-color: #fee2e2;
+            color: #991b1b;
+        }
+        .document-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        .document-item {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 8px;
+        }
+        .document-name {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+        .document-meta {
+            font-size: 0.8em;
+            color: #666;
+            margin-bottom: 8px;
+        }
+        .document-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 0.9em;
+            transition: background-color 0.2s;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #2563eb;
+            color: white;
+        }
+        .btn-primary:hover {
+            background-color: #1d4ed8;
+        }
+        .btn-secondary {
+            background-color: #6b7280;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background-color: #4b5563;
+        }
+        .btn-success {
+            background-color: #059669;
+            color: white;
+        }
+        .btn-success:hover {
+            background-color: #047857;
+        }
+        .btn-danger {
+            background-color: #dc2626;
+            color: white;
+        }
+        .btn-danger:hover {
+            background-color: #b91c1c;
+        }
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 0.8em;
+        }
+        .action-buttons {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 15px;
+        }
+        .info-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .extraction-info {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        .extraction-info h4 {
+            margin: 0 0 10px 0;
+            color: #374151;
+        }
+        .source-list {
+            font-size: 0.9em;
+            color: #666;
+        }
+        .flash-messages {
+            margin-bottom: 20px;
+        }
+        .flash-message {
+            padding: 12px 16px;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .flash-success {
+            background-color: #dcfce7;
+            color: #166534;
+            border: 1px solid #bbf7d0;
+        }
+        .flash-error {
+            background-color: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            .info-row {
+                grid-template-columns: 1fr;
+            }
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1>Review Tank</h1>
+                <p>Serial: {{ tank.serial_number or 'Unknown' }}</p>
+            </div>
+            <div>
+                <a href="{{ url_for('index') }}" class="back-link">← Back to Dashboard</a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash-message flash-{{ category }}">
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="main-content">
+            <!-- Tank Details Form -->
+            <div class="tank-details">
+                <div class="section-title">
+                    Tank Information
+                    <span class="confidence-badge {% if tank.confidence_score >= 0.8 %}confidence-high{% elif tank.confidence_score >= 0.6 %}confidence-medium{% else %}confidence-low{% endif %}">
+                        {{ (tank.confidence_score * 100) | round(1) }}% confidence
+                    </span>
+                </div>
+
+                <div class="extraction-info">
+                    <h4>Extraction Summary</h4>
+                    <div class="source-list">
+                        <strong>Sources:</strong> {{ documents | length }} document(s)<br>
+                        <strong>Created:</strong> {{ tank.created_at | datetime }}<br>
+                        <strong>Batch ID:</strong> {{ tank.batch_id[:8] }}...
+                    </div>
+                </div>
+
+                <form id="tankForm" onsubmit="submitTank(event)">
+                    <!-- Core Identification -->
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Serial Number *</label>
+                            <input type="text" class="form-input" name="serial_number" 
+                                   value="{{ tank.serial_number or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Manufacturer</label>
+                            <input type="text" class="form-input" name="manufacturer" 
+                                   value="{{ tank.manufacturer or '' }}">
+                        </div>
+                    </div>
+
+                    <!-- Tank Specifications -->
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Capacity (gallons)</label>
+                            <input type="number" class="form-input" name="capacity_gallons" 
+                                   value="{{ tank.capacity_gallons or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Tank Type</label>
+                            <select class="form-input" name="tank_type">
+                                <option value="">Select type...</option>
+                                <option value="UST" {% if tank.tank_type == 'UST' %}selected{% endif %}>UST (Underground)</option>
+                                <option value="AST" {% if tank.tank_type == 'AST' %}selected{% endif %}>AST (Above Ground)</option>
+                                <option value="Other" {% if tank.tank_type == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Year Manufactured</label>
+                            <input type="number" class="form-input" name="year_manufactured" 
+                                   value="{{ tank.year_manufactured or '' }}" min="1900" max="2030">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Year Installed</label>
+                            <input type="number" class="form-input" name="year_installed" 
+                                   value="{{ tank.year_installed or '' }}" min="1900" max="2030">
+                        </div>
+                    </div>
+
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Material</label>
+                            <select class="form-input" name="material">
+                                <option value="">Select material...</option>
+                                <option value="Steel" {% if tank.material == 'Steel' %}selected{% endif %}>Steel</option>
+                                <option value="Fiberglass" {% if tank.material == 'Fiberglass' %}selected{% endif %}>Fiberglass</option>
+                                <option value="Other" {% if tank.material == 'Other' %}selected{% endif %}>Other</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Product Stored</label>
+                            <input type="text" class="form-input" name="product_stored" 
+                                   value="{{ tank.product_stored or '' }}" 
+                                   placeholder="e.g., Gasoline, Diesel">
+                        </div>
+                    </div>
+
+                    <!-- Facility Information -->
+                    <div class="form-group">
+                        <label class="form-label">Facility Name</label>
+                        <input type="text" class="form-input" name="facility_name" 
+                               value="{{ tank.facility_name or '' }}">
+                    </div>
+
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Facility Address *</label>
+                            <input type="text" class="form-input" name="facility_address" 
+                                   value="{{ tank.facility_address or '' }}" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">State *</label>
+                            <input type="text" class="form-input" name="facility_state" 
+                                   value="{{ tank.facility_state or '' }}" 
+                                   maxlength="2" pattern="[A-Z]{2}" placeholder="e.g., TX" required>
+                        </div>
+                    </div>
+
+                    <!-- Test Information -->
+                    <div class="info-row">
+                        <div class="form-group">
+                            <label class="form-label">Last Test Date</label>
+                            <input type="date" class="form-input" name="last_test_date" 
+                                   value="{{ tank.last_test_date or '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Test Type</label>
+                            <input type="text" class="form-input" name="test_type" 
+                                   value="{{ tank.test_type or '' }}">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Test Result</label>
+                        <select class="form-input" name="test_result">
+                            <option value="">Select result...</option>
+                            <option value="Pass" {% if tank.test_result == 'Pass' %}selected{% endif %}>Pass</option>
+                            <option value="Fail" {% if tank.test_result == 'Fail' %}selected{% endif %}>Fail</option>
+                            <option value="Inconclusive" {% if tank.test_result == 'Inconclusive' %}selected{% endif %}>Inconclusive</option>
+                        </select>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="form-group">
+                        <label class="form-label">Notes</label>
+                        <textarea class="form-input form-textarea" name="notes">{{ tank.notes or '' }}</textarea>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="action-buttons">
+                        <button type="submit" class="btn btn-success">Confirm & Save Tank</button>
+                        <button type="button" class="btn btn-danger" onclick="rejectTank()">Reject Tank</button>
+                        <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Documents Panel -->
+            <div class="documents-panel">
+                <div class="section-title">Source Documents</div>
+                
+                {% if documents %}
+                    <ul class="document-list">
+                        {% for doc in documents %}
+                            <li class="document-item">
+                                <div class="document-name">
+                                    {{ doc.file_path | truncate_path }}
+                                </div>
+                                <div class="document-meta">
+                                    Type: {{ doc.document_type }}<br>
+                                    Confidence: {{ (doc.confidence * 100) | round(1) }}%<br>
+                                    Size: {{ (doc.file_size / 1024) | round(1) }} KB
+                                </div>
+                                <div class="document-actions">
+                                    {% if doc.view_url %}
+                                        <a href="{{ doc.view_url }}" target="_blank" class="btn btn-primary btn-small">
+                                            View
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p>No documents found.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function submitTank(event) {
+            event.preventDefault();
+            
+            // Collect form data
+            const form = document.getElementById('tankForm');
+            const formData = new FormData(form);
+            const data = {};
+            
+            for (let [key, value] = formData.entries()) {
+                // Convert numeric fields
+                if (['capacity_gallons', 'year_manufactured', 'year_installed'].includes(key) && value) {
+                    data[key] = parseInt(value);
+                } else if (value) {
+                    data[key] = value;
+                }
+            }
+            
+            // Submit to server
+            fetch(`/confirm/{{ tank.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    edited_data: data
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert(`Tank confirmed successfully! Tank ID: ${result.tank_id}`);
+                    window.location.href = '/';
+                } else {
+                    alert('Error confirming tank: ' + result.error);
+                }
+            })
+            .catch(error => {
+                alert('Error submitting form: ' + error);
+            });
+        }
+        
+        function rejectTank() {
+            const reason = prompt('Please provide a reason for rejecting this tank:');
+            if (!reason || !reason.trim()) {
+                return;
+            }
+            
+            fetch(`/reject/{{ tank.id }}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    reason: reason.trim()
+                })
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('Tank rejected successfully.');
+                    window.location.href = '/';
+                } else {
+                    alert('Error rejecting tank: ' + result.error);
+                }
+            })
+            .catch(error => {
+                alert('Error rejecting tank: ' + error);
+            });
+        }
+    </script>
+</body>
+</html>

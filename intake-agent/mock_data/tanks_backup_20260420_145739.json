@@ -1,0 +1,105 @@
+[
+  {
+    "extracted_data": {
+      "serial_number": "UST-12345-TEST",
+      "manufacturer": "Xerxes Corporation",
+      "capacity_gallons": 10000,
+      "year_manufactured": null,
+      "year_installed": null,
+      "tank_type": "Underground Storage Tank (UST)",
+      "material": "Fiberglass",
+      "product_stored": null,
+      "facility_name": "Littleton Hospital",
+      "facility_address": "660 South Broadway, Littleton, CO 80120",
+      "facility_state": "CO",
+      "last_test_date": null,
+      "test_type": null,
+      "test_result": null,
+      "notes": null
+    },
+    "document_ids": [
+      "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Xerxes Tanks.pdf",
+      "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_OPS Install Permit_LAH_Approved - Includes Tightness Test.pdf",
+      "d4bcb6cf-2891-42f2-9291-36766b993318",
+      "local://storage/converted/2026-04-15T16-15-29.899Z_OFL_14108_FID_3474_Littleton_Hospital_Installation_Permit_EMAIL.pdf",
+      "a7debd29-cf14-49dd-bab0-3de7ff6b6239",
+      "5fb7da18-5bf9-4ab2-b04d-b9bee3c7238b",
+      "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Tank Chart 25K Xerxes - LAH.pdf",
+      "e60fe95e-fa95-498d-8a0f-3648f5b48746"
+    ],
+    "confidence_score": 1.0,
+    "needs_review": false,
+    "batch_id": "a1e46104-8dba-4096-8cba-f9cba8c64a8a",
+    "status": "confirmed",
+    "id": "2b13fdd5-5eff-422e-ac42-3e5801cfbabd",
+    "created_at": "2026-04-15 12:05:20.127961",
+    "sources": [
+      {
+        "document_id": "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_OPS Install Permit_LAH_Approved - Includes Tightness Test.pdf",
+        "filename": "2026-04-15T16-15-29.899Z_OPS Install Permit_LAH_Approved - Includes Tightness Test.pdf",
+        "confidence_score": 1.0,
+        "document_type": "Installation Permit",
+        "base_name": "OPS Install Permit_LAH_Approved - Includes Tightness Test.pdf",
+        "file_path": "local_storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_OPS Install Permit_LAH_Approved - Includes Tightness Test.pdf"
+      },
+      {
+        "document_id": "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Tank Chart 25K Xerxes - LAH.pdf",
+        "filename": "2026-04-15T16-15-29.899Z_Tank Chart 25K Xerxes - LAH.pdf",
+        "confidence_score": 1.0,
+        "document_type": "Tank Specifications",
+        "base_name": "Tank Chart 25K Xerxes - LAH.pdf",
+        "file_path": "local_storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Tank Chart 25K Xerxes - LAH.pdf"
+      },
+      {
+        "document_id": "local://storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Xerxes Tanks.pdf",
+        "filename": "2026-04-15T16-15-29.899Z_Xerxes Tanks.pdf",
+        "confidence_score": 1.0,
+        "document_type": "Product Specifications",
+        "base_name": "Xerxes Tanks.pdf",
+        "file_path": "local_storage/a1e46104-8dba-4096-8cba-f9cba8c64a8a/2026-04-15T16-15-29.899Z_Xerxes Tanks.pdf"
+      },
+      {
+        "document_id": "local://storage/converted/2026-04-15T16-15-29.899Z_OFL_14108_FID_3474_Littleton_Hospital_Installation_Permit_EMAIL.pdf",
+        "filename": "2026-04-15T16-15-29.899Z_OFL_14108_FID_3474_Littleton_Hospital_Installation_Permit_EMAIL.pdf",
+        "confidence_score": 1.0,
+        "document_type": "Permit Documentation",
+        "base_name": "OFL_14108_FID_3474_Littleton_Hospital_Installation_Permit_EMAIL.pdf",
+        "file_path": "converted_permits/2026-04-15T16-15-29.899Z_OFL_14108_FID_3474_Littleton_Hospital_Installation_Permit_EMAIL.pdf"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-20T19-25-26.425Z_Capacity Chart.EAT2000FIREGUARD.34'x10'.SWRI318905 STI62907.docx.pdf",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-20 14:42:48.679368"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-20T19-25-26.425Z_Capacity Chart.EAT12000FIREGUARD.20'11.5_x10'.SWRI330126 STI64138.docx.pdf",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-20 14:42:48.679375"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-20T19-25-26.425Z_Capacity Chart.EAT2000FIREGUARD.34'x10'.SWRI317842 STI62814.docx.pdf",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-20 14:42:48.679377"
+      },
+      {
+        "file_path": "/Users/charlesroehrig/Library/CloudStorage/GoogleDrive-casey.wells@tankid.io/My Drive/TankID/intake/inbox/2026-04-20T19-25-26.425Z_Capacity Chart.EAT12000FIREGUARD.20'11.5_x10'.SWRI329417 STI64092.docx.pdf",
+        "document_type": "spec_sheet",
+        "confidence": 0.95,
+        "processed_at": "2026-04-20 14:42:48.679378"
+      }
+    ],
+    "serial_number": "UST-12345-TEST",
+    "facility_name": "Littleton Hospital",
+    "facility_address": "660 South Broadway, Littleton, CO 80120",
+    "facility_state": "CO",
+    "manufacturer": "Xerxes Corporation",
+    "capacity_gallons": 10000,
+    "tank_type": "Underground Storage Tank (UST)",
+    "material": "Fiberglass",
+    "updated_at": "2026-04-20 14:42:48.690192",
+    "merge_count": 2
+  }
+]

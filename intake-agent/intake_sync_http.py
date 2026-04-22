@@ -10,6 +10,7 @@ import argparse
 from datetime import datetime
 import logging
 import os
+import base64
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(levelname)s:%(name)s:%(message)s')
@@ -21,6 +22,28 @@ class HTTPIntakeSyncManager:
         self.dry_run = dry_run
         self.sync_endpoint = f"{self.api_url}/api/intake-sync"
     
+    def read_file_as_base64(self, file_path):
+        """Read local file and convert to base64"""
+        try:
+            # Convert local:// protocol to actual path
+            if file_path.startswith('local://storage/'):
+                actual_path = file_path.replace('local://storage/', 'local_storage/')
+            elif file_path.startswith('local://storage/converted/'):
+                actual_path = file_path.replace('local://storage/converted/', 'local_storage/converted/')
+            else:
+                actual_path = file_path
+            
+            if os.path.exists(actual_path):
+                with open(actual_path, 'rb') as f:
+                    file_content = f.read()
+                    return base64.b64encode(file_content).decode('utf-8')
+            else:
+                logger.error(f"❌ File not found: {actual_path}")
+                return None
+        except Exception as e:
+            logger.error(f"❌ Error reading file {file_path}: {e}")
+            return None
+    
     def load_local_data(self):
         """Load tanks and documents from local JSON files"""
         try:
@@ -30,7 +53,31 @@ class HTTPIntakeSyncManager:
             with open('mock_data/documents.json', 'r') as f:
                 documents = json.load(f)
             
-            logger.info(f"📊 Loaded {len(tanks)} tanks, {len(documents)} documents")
+            # Convert file paths to base64 content for each tank
+            for tank in tanks:
+                if 'document_ids' in tank:
+                    tank_documents = []
+                    for doc_path in tank['document_ids']:
+                        base64_content = self.read_file_as_base64(doc_path)
+                        if base64_content:
+                            filename = os.path.basename(doc_path)
+                            # Clean up timestamp prefix
+                            clean_filename = filename.split('_', 1)[-1] if '_' in filename and filename.startswith('2026-') else filename
+                            tank_documents.append({
+                                'filename': clean_filename,
+                                'content': base64_content,
+                                'original_path': doc_path,
+                                'file_size': len(base64.b64decode(base64_content)),
+                                'mime_type': 'application/pdf'
+                            })
+                            logger.info(f"📄 Converted to base64: {clean_filename} ({len(base64.b64decode(base64_content))} bytes)")
+                        else:
+                            logger.warning(f"⚠️ Skipping missing file: {doc_path}")
+                    tank['documents_content'] = tank_documents
+                    # Remove the paths since we now have content
+                    del tank['document_ids']
+            
+            logger.info(f"📊 Loaded {len(tanks)} tanks with {sum(len(tank.get('documents_content', [])) for tank in tanks)} documents converted to base64")
             return tanks, documents
         
         except FileNotFoundError as e:
@@ -99,18 +146,24 @@ def main():
     
     args = parser.parse_args()
     
-    if args.dry_run:
-        logger.info("🧪 DRY RUN MODE - No actual production changes will be made")
+    print(f"🚀 TankID Intake Sync - API: {args.api_url}")
+    print(f"🧪 Dry Run: {args.dry_run}")
+    print("=" * 60)
     
-    sync_manager = HTTPIntakeSyncManager(api_url=args.api_url, dry_run=args.dry_run)
+    sync_manager = HTTPIntakeSyncManager(
+        api_url=args.api_url,
+        dry_run=args.dry_run
+    )
+    
     result = sync_manager.sync_to_production()
     
-    if result.get("success"):
-        logger.info("🎉 Production sync completed!")
-        return 0
+    if result.get('success'):
+        print("\n✅ Sync completed successfully!")
     else:
-        logger.error("❌ Production sync failed")
+        print(f"\n❌ Sync failed: {result.get('error')}")
         return 1
+    
+    return 0
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     exit(main())
