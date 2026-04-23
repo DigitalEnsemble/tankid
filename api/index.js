@@ -1197,6 +1197,8 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
     // Ensure schema has tank_number on tanks and facility_id on tank_documents
     try {
       await pool.query(`ALTER TABLE tanks ADD COLUMN IF NOT EXISTS tank_number VARCHAR(100) NULL`);
+      // Widen tank_number if it was previously created too small
+      await pool.query(`ALTER TABLE tanks ALTER COLUMN tank_number TYPE VARCHAR(100)`);
       await pool.query(`ALTER TABLE tank_documents ADD COLUMN IF NOT EXISTS facility_id UUID NULL`);
     } catch (migErr) {
       console.warn('⚠️ Schema migration warning (non-fatal):', migErr.message);
