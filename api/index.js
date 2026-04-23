@@ -1316,20 +1316,30 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           WHERE serial_number = $1 AND site_location_id = $2::uuid
         `, [tank.serial_number, siteLocationId]);
         
+        // Derive fields from extracted_data
+        const rawType = (tank.extracted_data?.tank_type || '').toUpperCase();
+        const tankType = (rawType.includes('UST') || tank.serial_number?.toUpperCase().startsWith('UST')) ? 'UST' : 'AST';
+        const installDate = tank.extracted_data?.installation_date || null;
+        const productGrade = tank.extracted_data?.contents || tank.extracted_data?.product_grade || null;
+
         let tankId;
         if (existingTank.rows.length > 0) {
-          // Update existing tank
+          // Update existing tank — fill in fields that were missing on first sync
           const updateTank = await pool.query(`
             UPDATE tanks SET 
-              install_date = $2,
-              last_inspection_date = $3,
+              tank_type = COALESCE(NULLIF($2,''), tank_type),
+              install_date = COALESCE($3, install_date),
+              product_grade = COALESCE($4, product_grade),
+              model_id = COALESCE($5::uuid, model_id),
               updated_at = NOW()
             WHERE id = $1
             RETURNING id
           `, [
             existingTank.rows[0].id,
-            tank.extracted_data?.installation_date || null,
-            tank.extracted_data?.last_inspection || null
+            tankType,
+            installDate,
+            productGrade,
+            tankModelId || null
           ]);
           tankId = updateTank.rows[0].id;
         } else {
@@ -1338,16 +1348,17 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           const insertTank = await pool.query(`
             INSERT INTO tanks (
               id, serial_number, site_location_id, model_id,
-              install_date, last_inspection_date,
+              tank_type, install_date, product_grade,
               created_at
-            ) VALUES (uuid_generate_v4(), $1, $2::uuid, $3::uuid, $4, $5, NOW())
+            ) VALUES (uuid_generate_v4(), $1, $2::uuid, $3::uuid, $4, $5, $6, NOW())
             RETURNING id
           `, [
             tank.serial_number,
             siteLocationId,
             tankModelId,
-            tank.extracted_data?.installation_date || null,
-            tank.extracted_data?.last_inspection || null
+            tankType,
+            installDate,
+            productGrade
           ]);
           tankId = insertTank.rows[0].id;
         }

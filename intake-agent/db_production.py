@@ -155,17 +155,22 @@ class ProductionDatabaseManager:
     def find_or_create_tank_model(self, tank_data: Dict) -> Optional[str]:
         """Find or create tank model"""
         try:
-            manufacturer = tank_data.get('manufacturer', 'Unknown')
-            capacity = tank_data.get('capacity')
+            # Extracted fields live under extracted_data; fall back to top-level keys
+            extracted = tank_data.get('extracted_data', {})
+            manufacturer = (extracted.get('manufacturer') or
+                            tank_data.get('manufacturer', 'Unknown'))
+            capacity = (extracted.get('capacity_gallons') or
+                        tank_data.get('capacity_gallons') or
+                        tank_data.get('capacity'))
             
             if not capacity:
-                return None
-            
-            # Try to parse capacity as integer
-            try:
-                capacity_gallons = int(str(capacity).replace(',', '').split()[0])
-            except (ValueError, IndexError):
-                capacity_gallons = 10000  # Default
+                capacity_gallons = 0  # Store 0 rather than skip — avoids null model
+            else:
+                # Try to parse capacity as integer
+                try:
+                    capacity_gallons = int(str(capacity).replace(',', '').split()[0])
+                except (ValueError, IndexError):
+                    capacity_gallons = 0
             
             # Check for existing model
             cursor = self.conn.cursor()
@@ -221,9 +226,40 @@ class ProductionDatabaseManager:
             
             existing_tank = cursor.fetchone()
             
+            extracted = tank_data.get('extracted_data', {})
+
+            # Derive tank_type: prefer extracted, then serial prefix, then AST
+            raw_type = (extracted.get('tank_type') or tank_data.get('tank_type') or '').upper()
+            tank_type = 'UST' if ('UST' in raw_type or
+                                   tank_data.get('serial_number', '').upper().startswith('UST')) else 'AST'
+
+            # installation_date
+            install_date = (extracted.get('installation_date') or
+                            tank_data.get('installation_date') or
+                            tank_data.get('install_date') or None)
+
+            # product / contents
+            product_grade = (extracted.get('contents') or
+                             extracted.get('product_grade') or
+                             tank_data.get('product_grade') or None)
+
+            # material / dimensions (stored in tank_models or as tank notes — pass through)
+            material = extracted.get('material') or tank_data.get('material')
+            dimensions = extracted.get('dimensions') or tank_data.get('dimensions')
+
             if existing_tank:
                 tank_id = str(existing_tank[0])
-                logger.info(f"✅ Tank exists in production: {tank_id}")
+                logger.info(f"✅ Tank exists in production: {tank_id} — updating fields")
+                # Update fields that may have been missing on first sync
+                cursor.execute("""
+                    UPDATE tanks SET
+                        tank_type = COALESCE(NULLIF(%s,''), tank_type),
+                        install_date = COALESCE(%s, install_date),
+                        product_grade = COALESCE(%s, product_grade),
+                        updated_at = NOW()
+                    WHERE id = %s
+                """, (tank_type, install_date, product_grade, tank_id))
+                self.conn.commit()
                 cursor.close()
                 return tank_id, facility_id
             
@@ -239,11 +275,11 @@ class ProductionDatabaseManager:
                 tank_id,
                 site_location_id,
                 tank_model_id,
-                'UST' if tank_data.get('serial_number', '').startswith('UST') else 'AST',
+                tank_type,
                 tank_data.get('serial_number'),
-                None,  # install_date - would need parsing
+                install_date,
                 tank_data.get('install_contractor'),
-                'Regular Unleaded'  # default
+                product_grade
             ))
             
             self.conn.commit()
