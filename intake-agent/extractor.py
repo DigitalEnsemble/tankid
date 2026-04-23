@@ -60,6 +60,10 @@ class DocumentExtractor:
             elif file_ext == '.msg':
                 return self._extract_from_msg(file_path)
             
+            # Handle plain text files
+            elif file_ext == '.txt':
+                return self._extract_from_text(file_path)
+            
             # Handle markdown files (for testing/development)
             elif file_ext == '.md':
                 return self._extract_from_markdown(file_path)
@@ -406,6 +410,45 @@ Return ONLY valid JSON:
                 confidence=0.0,
                 extracted_data={},
                 raw_response=response_text
+            )
+
+    def _extract_from_text(self, file_path: str) -> ExtractionResult:
+        """Extract tank data from plain text files"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text_content = f.read()
+            
+            filename = Path(file_path).stem
+            logger.info(f"Processing text file: {file_path} ({len(text_content)} chars)")
+            
+            prompt = self._build_extraction_prompt()
+            prompt += f"\n\nFilename (for context): {filename}"
+            prompt += f"\n\nDocument text content:\n{text_content[:10000]}"
+            
+            message = self.client.messages.create(
+                model="claude-sonnet-4-5",
+                max_tokens=4000,
+                temperature=0.1,
+                messages=[{"role": "user", "content": prompt}]
+            )
+            
+            response_text = message.content[0].text
+            result = self._parse_claude_response(response_text)
+            # Fallback: infer tank_id from filename if not extracted
+            if not result.extracted_data.get('tank_id'):
+                import re as _re
+                m = _re.match(r'((?:[A-Z]{2}-\d{4}-\d{2}|[A-Z]+-\d+))', filename)
+                if m:
+                    result.extracted_data['tank_id'] = m.group(1)
+            return result
+            
+        except Exception as e:
+            logger.error(f"Error extracting from text file {file_path}: {e}")
+            return ExtractionResult(
+                document_type="other",
+                confidence=0.0,
+                extracted_data={},
+                raw_response=f"Text extraction error: {e}"
             )
 
     def _extract_from_markdown(self, file_path: str) -> ExtractionResult:

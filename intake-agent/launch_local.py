@@ -19,12 +19,13 @@ if __name__ == '__main__':
         'intake_agent.py',
         '--inbox', os.environ['INTAKE_INBOX_PATH'],
         '--review-server',
-        '--review-host', '0.0.0.0'
+        '--review-host', '0.0.0.0',
+        '--review-port', '5001'
     ]
     
     print("🚀 Starting TankID Intake Agent (Local Development Mode)")
     print(f"📁 Monitoring: {os.environ['INTAKE_INBOX_PATH']}")
-    print("🌐 Review UI: http://localhost:5000")
+    print("🌐 Review UI: http://localhost:5001")
     print("💾 Database: Local JSON files (mock_data/)")
     print()
     
