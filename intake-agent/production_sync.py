@@ -177,7 +177,10 @@ class ProductionSyncManager:
     def sync_tank_with_documents(self, tank_data: Dict) -> bool:
         """Sync a tank and its associated documents with deduplication and .msg conversion"""
         try:
-            tank_serial = tank_data.get('serial_number', 'Unknown')
+            tank_serial = tank_data.get('serial_number') or ''
+            if not tank_serial or tank_serial == 'Unknown':
+                logger.warning(f"⚠️ Skipping tank with no serial number")
+                return False
             logger.info(f"🔄 Syncing tank: {tank_serial}")
             
             # Step 1: Process and deduplicate documents
@@ -230,7 +233,11 @@ class ProductionSyncManager:
                         
                         if r2_key:
                             # Sync document metadata to production
-                            doc_id = self.prod_db.sync_document_metadata(document_data, r2_key)
+                            doc_id = self.prod_db.sync_document_metadata(
+                                document_data, r2_key,
+                                facility_id=facility_id,
+                                tank_id=production_tank_id,
+                            )
                             uploaded_r2_keys.append(r2_key)
                             logger.info(f"📄 Synced document: {document_data['original_filename']}")
                         else:

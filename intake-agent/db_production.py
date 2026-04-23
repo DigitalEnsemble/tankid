@@ -92,19 +92,26 @@ class ProductionDatabaseManager:
             
             # Create new facility
             facility_id = str(uuid.uuid4())
+            # Use client_facility_number if provided, else generate a placeholder
+            state_facility_id = (
+                facility_data.get('client_facility_number')
+                or facility_data.get('state_facility_id')
+                or f"INTAKE_{facility_id[:8]}"
+            )
+            state_code = state[:2].upper()
             cursor.execute("""
                 INSERT INTO facilities (
-                    id, state_code, state_facility_id, name, address, city, state, zip, created_at
+                    id, state_code, state_facility_id, client_facility_id, name, address, city, state, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (
                 facility_id,
-                state[:2].upper(),
-                f"INTAKE_{facility_id[:8]}",  # Generate state facility ID
+                state_code,
+                state_facility_id,
+                state_facility_id,
                 facility_name,
                 street_address,
                 city,
-                state[:2].upper(),
-                zip_code[:10]
+                state_code,
             ))
             
             self.conn.commit()
@@ -230,8 +237,8 @@ class ProductionDatabaseManager:
 
             # Derive tank_type: prefer extracted, then serial prefix, then AST
             raw_type = (extracted.get('tank_type') or tank_data.get('tank_type') or '').upper()
-            tank_type = 'UST' if ('UST' in raw_type or
-                                   tank_data.get('serial_number', '').upper().startswith('UST')) else 'AST'
+            serial = (tank_data.get('serial_number') or '').upper()
+            tank_type = 'UST' if ('UST' in raw_type or serial.startswith('UST')) else 'AST'
 
             # installation_date
             install_date = (extracted.get('installation_date') or
@@ -268,7 +275,7 @@ class ProductionDatabaseManager:
             
             cursor.execute("""
                 INSERT INTO tanks (
-                    id, site_location_id, tank_model_id, tank_type, serial_number,
+                    id, site_location_id, model_id, tank_type, serial_number,
                     install_date, install_contractor, product_grade, created_at
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
             """, (
@@ -293,30 +300,44 @@ class ProductionDatabaseManager:
             logger.error(f"Error syncing tank to production: {e}")
             raise
     
-    def sync_document_metadata(self, document_data: Dict, r2_key: str) -> str:
+    def sync_document_metadata(self, document_data: Dict, r2_key: str,
+                                facility_id: str = None, tank_id: str = None) -> str:
         """Sync document metadata to production (after R2 upload)"""
         try:
             doc_id = str(uuid.uuid4())
-            
+            fname = document_data.get('original_filename', '')
+            linked = [tank_id] if tank_id else []
+            r2_public_url = os.environ.get('R2_PUBLIC_URL', '').rstrip('/')
+            file_path = f"{r2_public_url}/{r2_key}" if r2_public_url else r2_key
+
             cursor = self.conn.cursor()
             cursor.execute("""
                 INSERT INTO tank_documents (
-                    id, doc_type, storage_key, original_filename, file_size_bytes, uploaded_at
-                ) VALUES (%s, %s, %s, %s, %s, NOW())
+                    id, filename, original_filename, doc_type, file_path,
+                    file_size, mime_type, linked_tanks, facility_id,
+                    uploaded_by, is_public, r2_key, created_at, updated_at
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s::uuid[], %s, %s, %s, %s, NOW(), NOW())
             """, (
                 doc_id,
+                fname,
+                fname,
                 document_data.get('document_type', 'other'),
+                file_path,
+                document_data.get('file_size', 0),
+                'application/pdf',
+                linked,
+                facility_id,
+                'intake-agent',
+                False,
                 r2_key,
-                document_data.get('original_filename'),
-                document_data.get('file_size', 0)
             ))
-            
+
             self.conn.commit()
             cursor.close()
-            
-            logger.info(f"📄 Synced document metadata: {document_data.get('original_filename')}")
+
+            logger.info(f"📄 Synced document metadata: {fname}")
             return doc_id
-            
+
         except Exception as e:
             self.conn.rollback()
             logger.error(f"Error syncing document metadata: {e}")
