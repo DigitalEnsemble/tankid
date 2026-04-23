@@ -55,6 +55,10 @@ class DatabaseManager:
     def reject_tank(self, tank_id: str, reason: str) -> bool:
         """Reject a tank with reason"""
         return self.db.reject_tank(tank_id, reason)
+
+    def reject_pending_tank(self, pending_id: str, reason: str) -> bool:
+        """Alias for reject_tank — called by review_server"""
+        return self.db.reject_tank(pending_id, reason)
     
     def create_pending_tank(self, extracted_data, document_ids, confidence_score, needs_review, batch_id) -> str:
         """Create a pending tank record"""

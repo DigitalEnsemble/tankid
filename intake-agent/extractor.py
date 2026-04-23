@@ -103,12 +103,14 @@ class DocumentExtractor:
                 )
             
             # Prepare the extraction prompt with PDF text
+            filename = Path(file_path).stem  # e.g. FL-2001-01_Drawing
             prompt = self._build_extraction_prompt()
+            prompt += f"\\n\\nFilename (for context, use to infer tank_id if present): {filename}"
             prompt += f"\\n\\nDocument text content:\\n{text_content[:10000]}"  # Limit to 10k chars
             
             # Make API call to Claude (text-only)
             message = self.client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-sonnet-4-5",
                 max_tokens=4000,
                 temperature=0.1,
                 messages=[{
@@ -119,7 +121,14 @@ class DocumentExtractor:
             
             # Parse Claude's response
             response_text = message.content[0].text
-            return self._parse_claude_response(response_text)
+            result = self._parse_claude_response(response_text)
+            # Fallback: infer tank_id from filename if not extracted
+            if not result.extracted_data.get('tank_id'):
+                import re as _re
+                m = _re.match(r'((?:[A-Z]{2}-\d{4}-\d{2}|[A-Z]+-\d+))', filename)
+                if m:
+                    result.extracted_data['tank_id'] = m.group(1)
+            return result
             
         except Exception as e:
             logger.error(f"Error extracting from PDF {file_path}: {e}")
@@ -175,7 +184,7 @@ class DocumentExtractor:
             
             # Make API call to Claude Vision
             message = self.client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-sonnet-4-5",
                 max_tokens=4000,
                 temperature=0.1,
                 messages=[{
@@ -242,7 +251,7 @@ class DocumentExtractor:
             prompt = self._build_extraction_prompt()
             
             message = self.client.messages.create(
-                model="claude-3-sonnet-20240229",
+                model="claude-sonnet-4-5",
                 max_tokens=4000,
                 temperature=0.1,
                 messages=[
@@ -350,7 +359,7 @@ Return ONLY valid JSON:
         """Parse Claude's JSON response into ExtractionResult"""
         try:
             # Extract JSON from response (handle markdown code blocks)
-            json_match = re.search(r'```json\\n(.+?)\\n```', response_text, re.DOTALL)
+            json_match = re.search(r'```json\s*(.+?)\s*```', response_text, re.DOTALL)
             if json_match:
                 json_str = json_match.group(1)
             else:

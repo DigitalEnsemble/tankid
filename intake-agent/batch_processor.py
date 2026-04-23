@@ -15,7 +15,7 @@ from pathlib import Path
 from datetime import datetime
 import uuid
 
-from extractor_test import DocumentExtractor, ExtractionResult  # Using test extractor for development
+from extractor import DocumentExtractor, ExtractionResult
 from merger import TankMerger, MergedTank
 from storage_local import StorageManager  # Using local storage for development
 from db_local import DatabaseManager  # Using local JSON storage for development
@@ -61,14 +61,22 @@ class BatchProcessor:
         # File handling - IMPROVED
         self.tank_document_extensions = {'.pdf', '.md'}  # PDFs and markdown for tank docs
         self.image_extensions = {'.jpg', '.jpeg', '.png'}  # Images allowed but lower priority
-        self.excluded_extensions = {'.txt', '.msg'}  # Email files excluded
+        self.excluded_extensions = {'.msg'}  # Hard email file types excluded
         
-        # Content filtering patterns
+        # Content filtering patterns — .txt files are content-analyzed, not blanket excluded
         self.email_patterns = [
             r'EMAIL_.*\.txt$',
             r'Fwd.*\.txt$',
             r'Re:.*\.txt$',
             r'\.msg$'
+        ]
+        
+        # Patterns that indicate irrelevant email/conversation content in .txt files
+        self.irrelevant_txt_patterns = [
+            r'FROM:\s*.*?@',
+            r'TO:\s*.*?@',
+            r'---------- Forwarded message',
+            r'Sent:.*\d{4}',
         ]
         
         # Tank document patterns (what we WANT to process)
@@ -165,7 +173,8 @@ class BatchProcessor:
             return processing_result
             
         except Exception as e:
-            logger.error(f"Batch processing failed: {str(e)}")
+            import traceback
+            logger.error(f"Batch processing failed: {str(e)}\n{traceback.format_exc()}")
             return ProcessingResult(
                 batch_id=batch_id,
                 processed_files=[],
@@ -259,13 +268,26 @@ class BatchProcessor:
         file_name = Path(file_path).name
         extension = Path(file_path).suffix.lower()
         
-        # Step 1: Exclude email files by extension and pattern
+        # Step 1: Exclude hard email file types and clearly-named email files
         if extension in self.excluded_extensions:
             return False
             
         for pattern in self.email_patterns:
             if re.search(pattern, file_name, re.IGNORECASE):
                 return False
+        
+        # Step 1b: For .txt files, content-check for irrelevant email/conversation content
+        if extension == '.txt':
+            try:
+                with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read(5000)
+                matches = sum(1 for p in self.irrelevant_txt_patterns if re.search(p, content, re.IGNORECASE))
+                if matches >= 2:
+                    logger.info(f"🚫 SKIPPED (irrelevant email content): {file_name}")
+                    return False
+            except Exception:
+                pass
+            return True  # Keep .txt files that aren't clearly irrelevant emails
         
         # Step 2: Accept tank documents
         if extension in self.tank_document_extensions:
@@ -362,10 +384,11 @@ class BatchProcessor:
         """Group documents by tank and merge their data"""
         logger.info("Merging documents by tank...")
         
-        # Filter out non-tank documents
+        # Filter out non-tank documents (but keep installation_permit for facility data fan-out)
         tank_documents = {
             path: data for path, data in extraction_results.items()
-            if data['document_type'] in ['tank_chart', 'spec_sheet'] and data['confidence'] > 0.5
+            if data['document_type'] in ['tank_chart', 'spec_sheet', 'installation_permit']
+            and data['confidence'] > 0.5
         }
         
         if not tank_documents:
