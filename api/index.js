@@ -1193,8 +1193,41 @@ app.get('/documents/:entityType/:entityId', async (req, res) => {
 app.post('/api/intake-sync', requireApiKey, async (req, res) => {
   try {
     console.log('🚀 Intake sync request received');
-    
-    const { tanks, documents, dry_run = false } = req.body;
+
+    // Ensure schema has tank_number on tanks and facility_id on tank_documents
+    try {
+      await pool.query(`ALTER TABLE tanks ADD COLUMN IF NOT EXISTS tank_number VARCHAR(100) NULL`);
+      await pool.query(`ALTER TABLE tank_documents ADD COLUMN IF NOT EXISTS facility_id UUID NULL`);
+    } catch (migErr) {
+      console.warn('⚠️ Schema migration warning (non-fatal):', migErr.message);
+    }
+
+    // Helper: classify a filename as facility-level or tank-level
+    function classifyDoc(filename, docMeta = {}) {
+      const fn = filename.toLowerCase();
+      const isFacility =
+        fn.includes('registration') ||
+        fn.includes('_index') ||
+        fn.includes('facility_info') ||
+        fn.includes('facility-info') ||
+        (docMeta.isFacilityLevel === true) ||
+        (typeof docMeta.tank_id === 'string' && docMeta.tank_id.toLowerCase().includes('multiple'));
+      return isFacility ? 'facility' : 'tank';
+    }
+
+    // Helper: determine document category from filename
+    function docCategory(filename) {
+      const fn = filename.toLowerCase();
+      if (fn.includes('permit') || fn.includes('registration')) return 'installation_permit';
+      if (fn.includes('chart')) return 'tank_chart';
+      if (fn.includes('drawing') || fn.includes('spec') || fn.includes('xerxes')) return 'spec_sheet';
+      if (fn.includes('warranty')) return 'warranty';
+      if (fn.includes('index')) return 'index';
+      if (fn.includes('facility')) return 'facility_info';
+      return 'other';
+    }
+
+    const { tanks, documents, dry_run = false, facility_documents = [] } = req.body;
     
     if (!tanks || !Array.isArray(tanks)) {
       return res.status(400).json({ error: 'tanks array is required' });
@@ -1312,6 +1345,9 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           console.log(`✅ Created new tank model: ${tankModelId}`);
         }
         
+        // Derive tank display name: explicit name → serial_number → "Tank N"
+        const tankDisplayName = tank.tank_name || tank.serial_number || `Tank ${results.tanks_synced + 1}`;
+
         // Check for existing tank first
         let existingTank = await pool.query(`
           SELECT id FROM tanks 
@@ -1333,6 +1369,7 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
               install_date = COALESCE($3, install_date),
               product_grade = COALESCE($4, product_grade),
               model_id = COALESCE($5::uuid, model_id),
+              tank_number = COALESCE(NULLIF($6,''), tank_number),
               updated_at = NOW()
             WHERE id = $1
             RETURNING id
@@ -1341,7 +1378,8 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
             tankType,
             installDate,
             productGrade,
-            tankModelId || null
+            tankModelId || null,
+            tankDisplayName
           ]);
           tankId = updateTank.rows[0].id;
         } else {
@@ -1349,13 +1387,14 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           console.log(`🔧 Inserting tank with siteLocationId: ${siteLocationId}, tankModelId: ${tankModelId}`);
           const insertTank = await pool.query(`
             INSERT INTO tanks (
-              id, serial_number, site_location_id, model_id,
+              id, serial_number, tank_number, site_location_id, model_id,
               tank_type, install_date, product_grade,
               created_at
-            ) VALUES (uuid_generate_v4(), $1, $2::uuid, $3::uuid, $4, $5, $6, NOW())
+            ) VALUES (uuid_generate_v4(), $1, $2, $3::uuid, $4::uuid, $5, $6, $7, NOW())
             RETURNING id
           `, [
             tank.serial_number,
+            tankDisplayName,
             siteLocationId,
             tankModelId,
             tankType,
@@ -1375,67 +1414,80 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
           
           for (const doc of tank.documents_content) {
             try {
-              const { filename, content, mime_type = 'application/pdf' } = doc;
+              const { filename, content, mime_type = 'application/pdf', is_facility_level } = doc;
               
               // Extract clean filename
               const cleanFilename = filename.replace(/^\d{4}-\d{2}-\d{2}T[\d\-\.]+Z_/, '');
-              
-              // Determine document category
-              let category = 'Other';
-              if (cleanFilename.toLowerCase().includes('permit')) {
-                category = 'Installation Permit';
-              } else if (cleanFilename.toLowerCase().includes('chart')) {
-                category = 'Tank Specifications';
-              } else if (cleanFilename.toLowerCase().includes('xerxes')) {
-                category = 'Product Specifications';
-              }
-              
+              const category = docCategory(cleanFilename);
+              const docLevel = is_facility_level ? 'facility' : classifyDoc(cleanFilename, doc);
+
               // For dry run, just log what would happen
               if (dry_run) {
-                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category})`);
+                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category}, ${docLevel}-level)`);
                 results.documents_uploaded++;
                 continue;
               }
               
-              // Generate R2 key — canonical path: documents/<facility_uuid>/<filename>
+              // Canonical R2 key — always scoped to facility
               const r2Key = `documents/${facilityId}/${cleanFilename}`;
+
+              // DEDUP: skip if this r2_key already exists in DB
+              const existingDoc = await pool.query(
+                'SELECT id FROM tank_documents WHERE r2_key = $1 LIMIT 1',
+                [r2Key]
+              );
+              if (existingDoc.rows.length > 0) {
+                console.log(`⏭️ Skipping duplicate document: ${cleanFilename} (already in DB)`);
+                continue;
+              }
               
               // Convert base64 to buffer
               const fileBuffer = Buffer.from(content, 'base64');
               const fileSize = fileBuffer.length;
               
-              // Upload to R2
+              // Upload to R2 (check if key already exists first)
               try {
-                const uploadCommand = new PutObjectCommand({
-                  Bucket: process.env.R2_BUCKET,
-                  Key: r2Key,
-                  Body: fileBuffer,
-                  ContentType: mime_type
-                });
+                let alreadyInR2 = false;
+                try {
+                  const { HeadObjectCommand } = require('@aws-sdk/client-s3');
+                  await s3Client.send(new HeadObjectCommand({ Bucket: process.env.R2_BUCKET, Key: r2Key }));
+                  alreadyInR2 = true;
+                  console.log(`⏭️ R2 object already exists, skipping upload: ${r2Key}`);
+                } catch (headErr) {
+                  // 404 = not found, proceed with upload
+                }
+
+                if (!alreadyInR2) {
+                  await s3Client.send(new PutObjectCommand({
+                    Bucket: process.env.R2_BUCKET,
+                    Key: r2Key,
+                    Body: fileBuffer,
+                    ContentType: mime_type
+                  }));
+                  console.log(`✅ Uploaded to R2: ${r2Key} (${fileSize} bytes)`);
+                }
                 
-                await s3Client.send(uploadCommand);
-                console.log(`✅ Uploaded to R2: ${r2Key} (${fileSize} bytes)`);
-                
-                // Create document record with actual R2 URL
+                // Create document record
                 const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
-                const documentResult = await pool.query(`
-                  INSERT INTO tank_documents (
-                    linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
-                    doc_type, created_at
-                  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-                  RETURNING id
-                `, [
-                  [tankId], // Array of linked tank UUIDs
-                  cleanFilename,
-                  cleanFilename,
-                  r2Url, // Use actual R2 URL
-                  r2Key,
-                  fileSize, // Actual file size
-                  mime_type,
-                  category.toLowerCase().replace(/\s+/g, '_')
-                ]);
-                
-                console.log(`📄 Created document record: ${cleanFilename} → ${r2Url}`);
+                if (docLevel === 'facility') {
+                  // Facility-level doc: linked to facility, not a specific tank
+                  await pool.query(`
+                    INSERT INTO tank_documents (
+                      linked_tanks, facility_id, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                      doc_type, created_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+                  `, [[], facilityId, cleanFilename, cleanFilename, r2Url, r2Key, fileSize, mime_type, category]);
+                  console.log(`🏢 Created facility-level document: ${cleanFilename}`);
+                } else {
+                  // Tank-level doc
+                  await pool.query(`
+                    INSERT INTO tank_documents (
+                      linked_tanks, facility_id, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                      doc_type, created_at
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
+                  `, [[tankId], facilityId, cleanFilename, cleanFilename, r2Url, r2Key, fileSize, mime_type, category]);
+                  console.log(`📄 Created tank document: ${cleanFilename}`);
+                }
                 results.documents_uploaded++;
                 
               } catch (uploadError) {
@@ -1464,85 +1516,78 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
               // Extract filename and category
               const filename = documentPath.split('/').pop();
               const cleanFilename = filename.replace(/^\d{4}-\d{2}-\d{2}T[\d\-\.]+Z_/, '');
-              
-              // Determine document category
-              let category = 'Other';
-              if (cleanFilename.toLowerCase().includes('permit')) {
-                category = 'Installation Permit';
-              } else if (cleanFilename.toLowerCase().includes('chart')) {
-                category = 'Tank Specifications';
-              } else if (cleanFilename.toLowerCase().includes('xerxes')) {
-                category = 'Product Specifications';
-              }
+              const category = docCategory(cleanFilename);
+              const docLevel = classifyDoc(cleanFilename);
               
               // For dry run, just log what would happen
               if (dry_run) {
-                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category})`);
+                console.log(`🧪 DRY RUN: Would upload ${cleanFilename} (${category}, ${docLevel}-level)`);
                 results.documents_uploaded++;
                 continue;
               }
               
-              // Generate R2 key — canonical path: documents/<uuid>/<filename>
-              const legacyDocUuid = require('crypto').randomUUID();
-              const r2Key = `documents/${legacyDocUuid}/${cleanFilename}`;
-              
+              // Canonical R2 key scoped to facility
+              const r2Key = `documents/${facilityId}/${cleanFilename}`;
+
+              // DEDUP: skip if r2_key already in DB
+              const existingLeg = await pool.query(
+                'SELECT id FROM tank_documents WHERE r2_key = $1 LIMIT 1', [r2Key]
+              );
+              if (existingLeg.rows.length > 0) {
+                console.log(`⏭️ Skipping duplicate (legacy): ${cleanFilename}`);
+                continue;
+              }
+
               // Check if this is a local file path (from intake agent)
               if (documentPath.startsWith('local://')) {
-                console.log(`⚠️ LEGACY: Skipping local file path (use documents_content format): ${cleanFilename}`);
-                console.log(`📝 Database record created as placeholder, no file upload`);
-                
-                // Create placeholder record
-                const documentResult = await pool.query(`
-                  INSERT INTO tank_documents (
-                    linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
-                    doc_type, created_at
-                  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
-                  RETURNING id
-                `, [
-                  [tankId], // Array of linked tank UUIDs
-                  cleanFilename,
-                  cleanFilename,
-                  'PENDING_UPLOAD', // Placeholder
-                  r2Key,
-                  0, // File size placeholder
-                  'application/pdf',
-                  category.toLowerCase().replace(/\s+/g, '_')
-                ]);
-                
-                console.log(`📄 Created placeholder record: ${cleanFilename}`);
-                // DON'T increment documents_uploaded for skipped files
+                console.log(`⚠️ LEGACY: local file path not uploadable — skipping: ${cleanFilename}`);
+                // DON'T create placeholder records — they cause dedup issues
                 
               } else {
                 // Actually upload file to R2 (for non-local paths)
                 try {
                   const fileBuffer = fs.readFileSync(documentPath);
-                  const uploadCommand = new PutObjectCommand({
-                    Bucket: process.env.R2_BUCKET,
-                    Key: r2Key,
-                    Body: fileBuffer,
-                    ContentType: 'application/pdf'
-                  });
-                  
-                  await s3Client.send(uploadCommand);
-                  console.log(`✅ Uploaded to R2: ${r2Key}`);
-                  
-                  // Create document record
+
+                  // R2 dedup check
+                  let legAlreadyInR2 = false;
+                  try {
+                    const { HeadObjectCommand } = require('@aws-sdk/client-s3');
+                    await s3Client.send(new HeadObjectCommand({ Bucket: process.env.R2_BUCKET, Key: r2Key }));
+                    legAlreadyInR2 = true;
+                  } catch (_) {}
+
+                  if (!legAlreadyInR2) {
+                    await s3Client.send(new PutObjectCommand({
+                      Bucket: process.env.R2_BUCKET,
+                      Key: r2Key,
+                      Body: fileBuffer,
+                      ContentType: 'application/pdf'
+                    }));
+                    console.log(`✅ Uploaded to R2: ${r2Key}`);
+                  } else {
+                    console.log(`⏭️ R2 already has: ${r2Key}`);
+                  }
+
+                  // Create document record (facility-level or tank-level)
                   const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
+                  const linkedTanksVal = docLevel === 'facility' ? [] : [tankId];
+                  const facilityIdVal  = docLevel === 'facility' ? facilityId : facilityId;
                   const documentResult = await pool.query(`
                     INSERT INTO tank_documents (
-                      linked_tanks, filename, original_filename, file_path, r2_key, file_size, mime_type,
+                      linked_tanks, facility_id, filename, original_filename, file_path, r2_key, file_size, mime_type,
                       doc_type, created_at
-                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+                    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW())
                     RETURNING id
                   `, [
-                    [tankId], // Array of linked tank UUIDs
+                    linkedTanksVal,
+                    facilityIdVal,
                     cleanFilename,
                     cleanFilename,
-                    r2Url, // Use actual R2 URL
+                    r2Url,
                     r2Key,
-                    fileBuffer.length, // Actual file size
+                    fileBuffer.length,
                     'application/pdf',
-                    category.toLowerCase().replace(/\s+/g, '_')
+                    category
                   ]);
                   
                   console.log(`📄 Created document record: ${cleanFilename} → ${r2Url}`);
