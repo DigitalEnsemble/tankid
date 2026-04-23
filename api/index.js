@@ -681,10 +681,14 @@ app.post('/migrate/documents-to-r2', requireApiKey, async (req, res) => {
     
     // Get all documents that need migration (no r2_key yet)
     const documentsResult = await pool.query(`
-      SELECT id, original_filename, file_path, mime_type, file_size
-      FROM tank_documents 
-      WHERE r2_key IS NULL
-      ORDER BY created_at
+      SELECT td.id, td.original_filename, td.file_path, td.mime_type, td.file_size,
+             f.id AS facility_id
+      FROM tank_documents td
+      LEFT JOIN tanks t ON t.id = ANY(td.linked_tanks)
+      LEFT JOIN site_locations sl ON sl.id = t.site_location_id
+      LEFT JOIN facilities f ON f.id = sl.facility_id
+      WHERE td.r2_key IS NULL
+      ORDER BY td.created_at
     `);
     
     console.log(`📄 Found ${documentsResult.rows.length} documents to migrate`);
@@ -697,11 +701,9 @@ app.post('/migrate/documents-to-r2', requireApiKey, async (req, res) => {
       try {
         console.log(`📤 Processing: ${doc.original_filename}`);
         
-        // Generate R2 key (folder structure: documents/YYYY/MM/filename)
-        const uploadDate = new Date();
-        const year = uploadDate.getFullYear();
-        const month = String(uploadDate.getMonth() + 1).padStart(2, '0');
-        const r2Key = `documents/${year}/${month}/${doc.id}_${doc.original_filename}`;
+        // Generate R2 key — canonical path: documents/<facility_uuid>/<filename>
+        const facilityUuid = doc.facility_id || doc.id; // fallback to doc id if no facility
+        const r2Key = `documents/${facilityUuid}/${doc.original_filename}`;
         
         // For now, just update the database with the R2 key
         // (actual file upload would happen separately)
@@ -1395,9 +1397,8 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
                 continue;
               }
               
-              // Generate R2 key — canonical path: documents/<uuid>/<filename>
-              const docUuid = doc.document_uuid || require('crypto').randomUUID();
-              const r2Key = `documents/${docUuid}/${cleanFilename}`;
+              // Generate R2 key — canonical path: documents/<facility_uuid>/<filename>
+              const r2Key = `documents/${facilityId}/${cleanFilename}`;
               
               // Convert base64 to buffer
               const fileBuffer = Buffer.from(content, 'base64');
