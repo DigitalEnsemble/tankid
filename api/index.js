@@ -569,6 +569,25 @@ app.get('/load-enhanced-seed', requireApiKey, async (req, res) => {
 });
 
 // Migrate to UUIDs endpoint
+// Fix file_path rows written with 'https://undefined' base
+app.get('/migrate/fix-file-paths', requireApiKey, async (req, res) => {
+  try {
+    const r2Base = process.env.R2_PUBLIC_URL
+      ? `https://${process.env.R2_PUBLIC_URL}`
+      : `${process.env.R2_ENDPOINT}/${process.env.R2_BUCKET}`;
+    const result = await pool.query(
+      `UPDATE tank_documents
+       SET file_path = REPLACE(file_path, 'https://undefined', $1)
+       WHERE file_path LIKE 'https://undefined%'
+       RETURNING filename`,
+      [r2Base]
+    );
+    res.json({ success: true, fixed: result.rows.length, files: result.rows.map(r => r.filename) });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 app.get('/migrate-to-uuids', requireApiKey, async (req, res) => {
   try {
     const result = await migrateToUUIDs();
