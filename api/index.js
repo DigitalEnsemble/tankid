@@ -796,7 +796,7 @@ app.get('/tank/:id', async (req, res) => {
     const t = await pool.query(`
       SELECT t.*, 
              sl.site_name, sl.site_code,
-             f.name AS facility_name, f.address, f.city, f.state, f.zip,
+             f.name AS facility_name, f.address, f.city, f.state,
              f.state_code, f.state_facility_id, f.client_facility_id, f.installer_facility_id,
              m.manufacturer, m.model_name, m.capacity_gallons
       FROM tanks t
@@ -855,7 +855,6 @@ app.get('/tank/:id', async (req, res) => {
       address: tankRow.address,
       city: tankRow.city,
       state: tankRow.state,
-      zip: tankRow.zip,
 
       // Tank model info
       manufacturer: tankRow.manufacturer,
