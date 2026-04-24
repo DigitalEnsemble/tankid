@@ -1470,7 +1470,10 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
                 }
                 
                 // Create document record
-                const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
+                const r2BaseUrl = process.env.R2_PUBLIC_URL
+                  ? `https://${process.env.R2_PUBLIC_URL}`
+                  : `${process.env.R2_ENDPOINT}/${process.env.R2_BUCKET}`;
+                const r2Url = `${r2BaseUrl}/${r2Key}`;
                 if (docLevel === 'facility') {
                   // Facility-level doc: linked to facility, not a specific tank
                   await pool.query(`
@@ -1571,7 +1574,10 @@ app.post('/api/intake-sync', requireApiKey, async (req, res) => {
                   }
 
                   // Create document record (facility-level or tank-level)
-                  const r2Url = `https://${process.env.R2_PUBLIC_URL}/${r2Key}`;
+                  const r2BaseUrl2 = process.env.R2_PUBLIC_URL
+                    ? `https://${process.env.R2_PUBLIC_URL}`
+                    : `${process.env.R2_ENDPOINT}/${process.env.R2_BUCKET}`;
+                  const r2Url = `${r2BaseUrl2}/${r2Key}`;
                   const linkedTanksVal = docLevel === 'facility' ? [] : [tankId];
                   const facilityIdVal  = docLevel === 'facility' ? facilityId : facilityId;
                   const documentResult = await pool.query(`
