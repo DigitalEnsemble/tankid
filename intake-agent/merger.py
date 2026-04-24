@@ -26,6 +26,7 @@ class DocumentSource:
 class MergedTank:
     """Result of merging multiple documents for a single tank"""
     # Core identification
+    tank_id: Optional[str] = None       # Operator-assigned tank ID (e.g. from "Tank ID Number" permit field)
     serial_number: Optional[str] = None
     manufacturer: Optional[str] = None
     
@@ -45,7 +46,8 @@ class MergedTank:
     facility_zip: Optional[str] = None
     client_facility_id: Optional[str] = None
     owner_name: Optional[str] = None
-    
+    facility_phone: Optional[str] = None
+
     # Test information (latest)
     last_test_date: Optional[str] = None
     test_type: Optional[str] = None
@@ -75,6 +77,18 @@ class MergedTank:
                 total_weight += 1
             
             self.confidence_score = min(1.0, weighted_confidence / total_weight) if total_weight > 0 else 0.0
+
+        # Confidence penalties based on missing key identifiers
+        has_serial = bool(self.serial_number)
+        has_manufacturer = bool(self.manufacturer)
+        has_tank_id = bool(self.tank_id)
+
+        if not has_serial and not has_tank_id and not has_manufacturer:
+            # No identifying info at all — very low confidence
+            self.confidence_score = min(self.confidence_score, 0.05)
+        elif not has_serial:
+            # Serial number is the primary tank identifier — cap at 40% without it
+            self.confidence_score = min(self.confidence_score, 0.40)
 
 class TankMerger:
     """Handles grouping documents by tank and merging their extracted data"""
@@ -171,8 +185,13 @@ class TankMerger:
         # Zero match: Different explicit tank_id → never the same tank
         tank_id1 = data1.get('tank_id')
         tank_id2 = data2.get('tank_id')
+        doc_type1 = data1.get('document_type', '')
+        doc_type2 = data2.get('document_type', '')
+        support_types = {'spec_sheet', 'purchase_order', 'tank_chart'}
+        either_is_support = doc_type1 in support_types or doc_type2 in support_types
         # Only block merge on tank_id mismatch if both are single (non-list) IDs
-        if tank_id1 and tank_id2:
+        # and neither document is a support doc (spec sheets carry model numbers, not tank IDs)
+        if tank_id1 and tank_id2 and not either_is_support:
             ids1 = [x.strip() for x in str(tank_id1).split(',')]
             ids2 = [x.strip() for x in str(tank_id2).split(',')]
             # If neither overlaps and neither is a multi-tank list, they differ
@@ -197,7 +216,15 @@ class TankMerger:
         if facility_match and tank_characteristics_match:
             logger.debug(f"Tank match by facility + characteristics")
             return True
-        
+
+        # Fallback: same facility, no conflicting tank identifiers, no serial on either
+        # — likely support docs for the same tank (spec sheets, POs, permits)
+        no_serial = not serial1 and not serial2
+        no_conflicting_tank_id = not (tank_id1 and tank_id2 and tank_id1 != tank_id2)
+        if facility_match and no_serial and no_conflicting_tank_id:
+            logger.debug(f"Tank match by facility + no conflicting IDs (support doc grouping)")
+            return True
+
         return False
     
     def _normalize_serial(self, serial: Optional[str]) -> Optional[str]:
@@ -333,11 +360,11 @@ class TankMerger:
         
         # Merge static fields (prefer spec sheets, then highest confidence)
         static_fields = [
-            'serial_number', 'manufacturer', 'capacity_gallons', 
+            'tank_id', 'serial_number', 'manufacturer', 'capacity_gallons', 
             'year_manufactured', 'year_installed', 'tank_type', 
             'material', 'facility_name', 'facility_address', 'facility_city',
             'facility_state', 'facility_zip', 'client_facility_id', 'owner_name',
-            'product_stored'
+            'facility_phone', 'product_stored'
         ]
         
         for field in static_fields:

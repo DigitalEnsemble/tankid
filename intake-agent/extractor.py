@@ -98,13 +98,8 @@ class DocumentExtractor:
                         text_content += page_text + "\\n\\n"
             
             if not text_content.strip():
-                logger.warning(f"No text found in PDF: {file_path}")
-                return ExtractionResult(
-                    document_type="other",
-                    confidence=0.0,
-                    extracted_data={},
-                    raw_response="No text found in PDF"
-                )
+                logger.warning(f"No text found in PDF: {file_path} — trying vision fallback")
+                return self._extract_from_pdf_vision(file_path)
             
             # Prepare the extraction prompt with PDF text
             filename = Path(file_path).stem  # e.g. FL-2001-01_Drawing
@@ -143,6 +138,51 @@ class DocumentExtractor:
                 raw_response=f"PDF extraction error: {e}"
             )
     
+    def _extract_from_pdf_vision(self, file_path: str) -> ExtractionResult:
+        """Extract data from image-only PDF using Claude Vision API (page-by-page)."""
+        try:
+            import fitz  # PyMuPDF
+        except ImportError:
+            logger.warning("PyMuPDF not installed — cannot do PDF vision fallback. Run: pip install pymupdf")
+            return ExtractionResult(document_type="other", confidence=0.0, extracted_data={}, raw_response="PyMuPDF not available")
+
+        try:
+            filename = Path(file_path).stem
+            prompt = self._build_extraction_prompt()
+            prompt += f"\n\nFilename (for context): {filename}"
+            prompt += "\n\nThis is a scanned PDF. Extract all visible information from the page images below."
+
+            doc = fitz.open(file_path)
+            content_blocks = [{"type": "text", "text": prompt}]
+
+            for page_num in range(min(len(doc), 4)):  # cap at 4 pages
+                page = doc[page_num]
+                pix = page.get_pixmap(dpi=150)
+                img_bytes = pix.tobytes("png")
+                if len(img_bytes) > self.max_image_size:
+                    pix = page.get_pixmap(dpi=100)
+                    img_bytes = pix.tobytes("png")
+                encoded = base64.b64encode(img_bytes).decode("utf-8")
+                content_blocks.append({
+                    "type": "image",
+                    "source": {"type": "base64", "media_type": "image/png", "data": encoded}
+                })
+
+            doc.close()
+
+            response = self.client.messages.create(
+                model="claude-opus-4-5",
+                max_tokens=2000,
+                messages=[{"role": "user", "content": content_blocks}]
+            )
+
+            response_text = response.content[0].text
+            return self._parse_claude_response(response_text)
+
+        except Exception as e:
+            logger.error(f"PDF vision extraction failed for {file_path}: {e}")
+            return ExtractionResult(document_type="other", confidence=0.0, extracted_data={}, raw_response=f"Vision error: {e}")
+
     def _extract_from_image(self, file_path: str) -> ExtractionResult:
         """Extract data from image using Claude Vision API"""
         try:
@@ -289,6 +329,8 @@ Classify as ONE of:
 - tank_chart: Tank capacity chart with readings/volumes
 - spec_sheet: Tank specifications/technical data  
 - installation_permit: Installation/construction permit
+- registration: Tank or facility registration form
+- purchase_order: Purchase order or sales order for tank equipment
 - other: Any other document type
 
 **Tank Data to Extract:**
@@ -315,6 +357,7 @@ Classify as ONE of:
 - client_facility_id: Facility ID or number assigned by the client/owner (e.g. FL-2001, 1005, FAC-003)
 - state_facility_id: Facility ID or number assigned by the state regulator if present
 - owner_name: Name of the facility owner or operator if present
+- facility_phone: Facility phone number if present
 
 **Response Format:**
 Return ONLY valid JSON:
@@ -343,7 +386,8 @@ Return ONLY valid JSON:
     "facility_type": "value or null",
     "client_facility_id": "value or null",
     "state_facility_id": "value or null",
-    "owner_name": "value or null"
+    "owner_name": "value or null",
+    "facility_phone": "value or null"
   },
   "reasoning": "Brief explanation of classification and key findings"
 }
@@ -357,6 +401,15 @@ Return ONLY valid JSON:
 - Tank charts typically have capacity/volume tables
 - Spec sheets have technical specifications and part numbers
 - Installation permits have regulatory/approval information
+- **Scan the ENTIRE document**: letter headings, form fields, signature blocks, headers, footers, and tables all contain useful data
+- For permits/applications: the facility name, address, and owner often appear in the letterhead or the top section of page 1
+- For multi-page forms: page 2 and 3 often contain tank details (serial, capacity, type) in tabular form — read every page
+- Extract phone numbers into facility_phone (any format)
+- If the document references a facility number, permit number, or tank ID in any field, capture it
+- For owner_name: look for "Owner", "Operator", "Company", "Responsible Party", or the entity name in a letterhead
+- **tank_id**: look for any field labeled "Tank ID", "Tank ID Number", "(Ops Use) Tank ID Number", "Tank No", or similar — this is the primary tank identifier used by the operator
+- **facility_city**: prefer the city from a "City/State/Zip" or "City, State ZIP" line in a form field over any city that appears in a mailing address header or company letterhead
+- **serial_number**: look for fields labeled "Serial No", "Serial Number", "S/N", "Tank Serial", or a sequence number printed on the tank specification section
 '''
 
     def _parse_claude_response(self, response_text: str) -> ExtractionResult:
