@@ -309,14 +309,21 @@ def sync(dry_run=False):
     if resp.status_code != 200:
         sys.exit(1)
 
-    # On successful real sync, clear local data so the pipeline is ready for the next batch
+    # On successful real sync, clear local data so the pipeline is ready for the next batch.
+    # Only clear if the sync actually moved tanks (errors = partial failure, keep local data for retry).
     if not dry_run:
         try:
             result_json = json.loads(resp.text)
         except Exception:
             result_json = {}
-        if result_json.get("success"):
+        has_errors = bool(result_json.get("errors"))
+        moved_something = result_json.get("tanks_synced", 0) > 0 or result_json.get("facilities_synced", 0) > 0
+        if result_json.get("success") and moved_something and not has_errors:
             clear_local_data()
+        elif has_errors:
+            logger.warning("⚠️  Sync completed with errors — local data preserved for retry")
+        elif not moved_something:
+            logger.warning("⚠️  Nothing was synced — local data preserved")
 
 
 if __name__ == "__main__":
