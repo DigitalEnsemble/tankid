@@ -133,7 +133,19 @@ def build_payload(tanks) -> list:
     for idx, tank in enumerate(tanks, start=1):
         serial   = tank.get("serial_number") or f"Tank {idx}"
         # Derive the tank's file prefix from extracted_data.tank_id (e.g. "FL-2001-01")
+        # Fall back to inferring prefix from source file paths if tank_id is not set
         tank_prefix = (tank.get("extracted_data") or {}).get("tank_id", "").upper()
+        if not tank_prefix:
+            sources = tank.get("sources") or []
+            for src in sources:
+                src_name = Path(src.get("file_path", "")).stem  # e.g. "FL-2001-02_Drawing"
+                parts = src_name.split("_", 1)
+                if len(parts) == 2 and parts[0]:
+                    candidate = parts[0].upper()  # e.g. "FL-2001-02"
+                    # Only use if it looks like a tank-level prefix (has more than one dash segment)
+                    if candidate.count("-") >= 2:
+                        tank_prefix = candidate
+                        break
 
         # Display name: serial number is the best human-readable name we have
         tank_name = serial
