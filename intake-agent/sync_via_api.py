@@ -227,6 +227,28 @@ def build_payload(tanks) -> list:
 # Sync
 # ---------------------------------------------------------------------------
 
+def clear_local_data():
+    """Reset mock_data JSON files and wipe local_storage after a successful sync."""
+    import shutil
+    base = Path(__file__).parent
+
+    mock_data = base / "mock_data"
+    empty_list = json.dumps([], indent=2)
+    for fname in ["tanks.json", "documents.json", "batches.json"]:
+        fpath = mock_data / fname
+        if fpath.exists():
+            fpath.write_text(empty_list)
+            logger.info(f"Cleared {fpath.name}")
+
+    local_storage = base / "local_storage"
+    if local_storage.exists():
+        shutil.rmtree(local_storage)
+        local_storage.mkdir()
+        logger.info("Cleared local_storage/")
+
+    logger.info("✅ Local data cleared — ready for next batch")
+
+
 def sync(dry_run=False):
     api_key = os.environ.get("ADMIN_API_KEY")
     if not api_key:
@@ -256,6 +278,15 @@ def sync(dry_run=False):
 
     if resp.status_code != 200:
         sys.exit(1)
+
+    # On successful real sync, clear local data so the pipeline is ready for the next batch
+    if not dry_run:
+        try:
+            result_json = json.loads(resp.text)
+        except Exception:
+            result_json = {}
+        if result_json.get("success"):
+            clear_local_data()
 
 
 if __name__ == "__main__":
