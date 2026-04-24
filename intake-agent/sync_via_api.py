@@ -77,6 +77,20 @@ def load_documents_for_tank(tank, all_docs):
     return [d for d in all_docs if d.get("id") in doc_ids]
 
 
+def _coerce_date(value) -> str:
+    """Convert bare year (int or str) to YYYY-01-01; pass through full date strings as-is."""
+    if value is None:
+        return None
+    s = str(value).strip()
+    if not s:
+        return None
+    # Bare 4-digit year
+    import re
+    if re.fullmatch(r'\d{4}', s):
+        return f"{s}-01-01"
+    return s
+
+
 def _derive_facility_id(tank: dict) -> str:
     """Derive client_facility_id from source filenames when not explicitly set.
     E.g. 'UT-1001-01_Drawing.pdf' -> 'UT-1001'
@@ -102,7 +116,7 @@ def build_extracted_data(tank: dict) -> dict:
         "tank_type":          tank.get("tank_type"),
         "material":           tank.get("material"),
         "contents":           tank.get("product_stored") or tank.get("contents"),
-        "installation_date":  tank.get("installation_date") or tank.get("year_installed"),
+        "installation_date":  _coerce_date(tank.get("installation_date") or tank.get("year_installed")),
         "serial_number":      tank.get("serial_number"),
         "facility_name":      tank.get("facility_name"),
         "facility_address":   tank.get("facility_address"),
@@ -218,7 +232,7 @@ def build_payload(tanks) -> list:
             "manufacturer":      tank.get("manufacturer"),
             "material":          tank.get("material"),
             "capacity_gallons":  tank.get("capacity_gallons"),
-            "installation_date": tank.get("installation_date") or tank.get("year_installed"),
+            "installation_date": _coerce_date(tank.get("installation_date") or tank.get("year_installed")),
             "contents":          tank.get("product_stored") or tank.get("contents"),
             "dimensions":        tank.get("dimensions"),
             "coating_type":      tank.get("coating_type"),
