@@ -77,6 +77,22 @@ def load_documents_for_tank(tank, all_docs):
     return [d for d in all_docs if d.get("id") in doc_ids]
 
 
+def _derive_facility_id(tank: dict) -> str:
+    """Derive client_facility_id from source filenames when not explicitly set.
+    E.g. 'UT-1001-01_Drawing.pdf' -> 'UT-1001'
+    """
+    import re
+    sources = tank.get("sources") or []
+    for src in sources:
+        fp = src if isinstance(src, str) else src.get("file_path", "")
+        stem = Path(fp).stem  # e.g. 'UT-1001-01_Drawing'
+        # Match pattern: XX-NNNN (two uppercase letters, dash, 4 digits)
+        m = re.match(r'^([A-Z]{2}-\d{4})-', stem)
+        if m:
+            return m.group(1)
+    return None
+
+
 def build_extracted_data(tank: dict) -> dict:
     """Merge top-level mock fields into extracted_data so the API picks them up."""
     base = dict(tank.get("extracted_data") or {})
@@ -93,7 +109,7 @@ def build_extracted_data(tank: dict) -> dict:
         "facility_city":      tank.get("facility_city"),
         "facility_state":     tank.get("facility_state"),
         "facility_zip":       tank.get("facility_zip"),
-        "client_facility_id": tank.get("client_facility_id"),
+        "client_facility_id": tank.get("client_facility_id") or _derive_facility_id(tank),
     }
     for k, v in mapping.items():
         if v is not None and v != "" and k not in base:

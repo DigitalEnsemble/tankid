@@ -68,8 +68,9 @@ def review_tank(pending_id):
         
         # Add document URLs for viewing
         for doc in documents:
-            if doc['r2_path']:
-                doc['view_url'] = storage.get_document_url(doc['r2_path'])
+            r2_path = doc.get('r2_path') or doc.get('file_path') or doc.get('local_path')
+            if r2_path:
+                doc['view_url'] = storage.get_document_url(r2_path)
         
         return render_template('review_tank.html',
                              tank=pending_tank,

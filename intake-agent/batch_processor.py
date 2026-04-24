@@ -55,6 +55,9 @@ class BatchProcessor:
         self.db = DatabaseManager()
         
         # Processing thresholds
+        # Auto-confirm disabled by default — all tanks require human review.
+        # Set TANKID_AUTO_CONFIRM=true to re-enable.
+        self.auto_confirm_enabled = os.environ.get('TANKID_AUTO_CONFIRM', 'false').lower() == 'true'
         self.auto_confirm_threshold = 0.85
         self.min_required_fields = {'serial_number', 'facility_address', 'facility_state', 'manufacturer'}
         
@@ -486,7 +489,11 @@ class BatchProcessor:
     
     def _can_auto_confirm(self, tank: MergedTank) -> bool:
         """Determine if a tank can be auto-confirmed"""
-        
+
+        # Auto-confirm must be explicitly enabled
+        if not self.auto_confirm_enabled:
+            return False
+
         # Check confidence score
         if tank.confidence_score < self.auto_confirm_threshold:
             return False

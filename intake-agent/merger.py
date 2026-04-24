@@ -40,7 +40,11 @@ class MergedTank:
     # Facility information
     facility_name: Optional[str] = None
     facility_address: Optional[str] = None
+    facility_city: Optional[str] = None
     facility_state: Optional[str] = None
+    facility_zip: Optional[str] = None
+    client_facility_id: Optional[str] = None
+    owner_name: Optional[str] = None
     
     # Test information (latest)
     last_test_date: Optional[str] = None
@@ -89,6 +93,9 @@ class TankMerger:
         Returns:
             List of MergedTank objects
         """
+        # Extract batch-level facility fields from installation_permit docs
+        facility_override = self._extract_batch_facility(extraction_results)
+
         # Group documents by tank
         tank_groups = self._group_by_tank(extraction_results)
         
@@ -96,9 +103,32 @@ class TankMerger:
         merged_tanks = []
         for group in tank_groups:
             merged_tank = self._merge_tank_group(group)
+            # Fan out facility fields from installation_permit to all tanks
+            if facility_override:
+                for field, value in facility_override.items():
+                    if value and not getattr(merged_tank, field, None):
+                        setattr(merged_tank, field, value)
             merged_tanks.append(merged_tank)
             
         return merged_tanks
+
+    def _extract_batch_facility(self, extraction_results: Dict[str, Dict]) -> Dict:
+        """Pull facility fields from any installation_permit doc in the batch"""
+        facility_fields = ['facility_name', 'facility_address', 'facility_city',
+                           'facility_state', 'facility_zip', 'client_facility_id',
+                           'state_facility_id', 'owner_name', 'county', 'facility_type']
+        result = {}
+        for path, doc in extraction_results.items():
+            FACILITY_DOC_TYPES = {'installation_permit', 'registration', 'facility_info', 'facility_registration'}
+            doc_type = doc.get('document_type', '')
+            data = doc.get('extracted_data', {})
+            # Accept any doc type that has facility fields, not just installation_permit
+            has_facility_fields = any(data.get(f) for f in ['facility_address', 'facility_name', 'facility_city'])
+            if doc_type in FACILITY_DOC_TYPES or has_facility_fields:
+                for field in facility_fields:
+                    if data.get(field) and field not in result:
+                        result[field] = data[field]
+        return result
     
     def _group_by_tank(self, extraction_results: Dict[str, Dict]) -> List[List[Tuple[str, Dict]]]:
         """
@@ -138,6 +168,18 @@ class TankMerger:
         
         Uses serial number matching and facility similarity as primary indicators
         """
+        # Zero match: Different explicit tank_id → never the same tank
+        tank_id1 = data1.get('tank_id')
+        tank_id2 = data2.get('tank_id')
+        # Only block merge on tank_id mismatch if both are single (non-list) IDs
+        if tank_id1 and tank_id2:
+            ids1 = [x.strip() for x in str(tank_id1).split(',')]
+            ids2 = [x.strip() for x in str(tank_id2).split(',')]
+            # If neither overlaps and neither is a multi-tank list, they differ
+            if not set(ids1) & set(ids2) and len(ids1) == 1 and len(ids2) == 1:
+                logger.debug(f"Tank mismatch by tank_id: {tank_id1} != {tank_id2}")
+                return False
+
         # Primary match: Serial number
         serial1 = self._normalize_serial(data1.get('serial_number'))
         serial2 = self._normalize_serial(data2.get('serial_number'))
@@ -214,6 +256,11 @@ class TankMerger:
         # Check capacity (allow 10% variance for measurement differences)
         cap1 = data1.get('capacity_gallons')
         cap2 = data2.get('capacity_gallons')
+        try:
+            cap1 = float(cap1) if cap1 is not None else None
+            cap2 = float(cap2) if cap2 is not None else None
+        except (ValueError, TypeError):
+            cap1 = cap2 = None
         if cap1 and cap2:
             total_checks += 1
             variance = abs(cap1 - cap2) / max(cap1, cap2)
@@ -269,6 +316,11 @@ class TankMerger:
         all_data = []
         for file_path, doc_data in sorted_docs:
             extracted = doc_data.get('extracted_data', {})
+            # Normalize field aliases before merging
+            if not extracted.get('product_stored') and extracted.get('contents'):
+                extracted['product_stored'] = extracted['contents']
+            if not extracted.get('year_installed') and extracted.get('install_date'):
+                extracted['year_installed'] = extracted['install_date']
             all_data.append(extracted)
             
             sources.append(DocumentSource(
@@ -283,8 +335,9 @@ class TankMerger:
         static_fields = [
             'serial_number', 'manufacturer', 'capacity_gallons', 
             'year_manufactured', 'year_installed', 'tank_type', 
-            'material', 'facility_name', 'facility_address', 
-            'facility_state', 'product_stored'
+            'material', 'facility_name', 'facility_address', 'facility_city',
+            'facility_state', 'facility_zip', 'client_facility_id', 'owner_name',
+            'product_stored'
         ]
         
         for field in static_fields:
@@ -303,8 +356,8 @@ class TankMerger:
         notes = []
         for data in all_data:
             if data.get('notes'):
-                note = data['notes'].strip()
-                if note and note not in notes:
+                note = str(data['notes']).strip()
+                if note and str(note) not in notes:
                     notes.append(note)
         merged.notes = '; '.join(notes) if notes else None
         

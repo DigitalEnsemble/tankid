@@ -273,7 +273,7 @@
                     </div>
                 </div>
 
-                <form id="tankForm" onsubmit="submitTank(event)">
+                <form id="tankForm" onsubmit="return false;">
                     <!-- Core Identification -->
                     <div class="info-row">
                         <div class="form-group">
@@ -390,7 +390,7 @@
 
                     <!-- Action Buttons -->
                     <div class="action-buttons">
-                        <button type="submit" class="btn btn-success">Confirm & Save Tank</button>
+                        <button type="button" class="btn btn-success" onclick="submitTank(event)">Confirm & Save Tank</button>
                         <button type="button" class="btn btn-danger" onclick="rejectTank()">Reject Tank</button>
                         <a href="{{ url_for('index') }}" class="btn btn-secondary">Cancel</a>
                     </div>
@@ -410,8 +410,8 @@
                                 </div>
                                 <div class="document-meta">
                                     Type: {{ doc.document_type }}<br>
-                                    Confidence: {{ (doc.confidence * 100) | round(1) }}%<br>
-                                    Size: {{ (doc.file_size / 1024) | round(1) }} KB
+                                    {% if doc.confidence is not none %}Confidence: {{ (doc.confidence * 100) | round(1) }}%{% endif %}<br>
+                                    {% if doc.file_size %}Size: {{ (doc.file_size / 1024) | round(1) }} KB{% endif %}
                                 </div>
                                 <div class="document-actions">
                                     {% if doc.view_url %}
@@ -439,7 +439,7 @@
             const formData = new FormData(form);
             const data = {};
             
-            for (let [key, value] = formData.entries()) {
+            for (let [key, value] of formData.entries()) {
                 // Convert numeric fields
                 if (['capacity_gallons', 'year_manufactured', 'year_installed'].includes(key) && value) {
                     data[key] = parseInt(value);

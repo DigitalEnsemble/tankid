@@ -36,6 +36,22 @@ class DatabaseManager:
         """Get tanks pending review"""
         return self.db.get_pending_tanks()
     
+    def get_documents_for_pending_tank(self, tank_id: str) -> List[Dict]:
+        """Get documents associated with a pending tank"""
+        tank = self.get_pending_tank(tank_id)
+        if not tank:
+            return []
+        doc_ids = tank.get('document_ids', [])
+        all_docs = self.db.get_all_documents()
+        return [d for d in all_docs if d.get('id') in doc_ids]
+
+    def get_pending_tank(self, tank_id: str) -> Dict:
+        """Get a single pending tank by ID"""
+        for tank in self.db.get_pending_tanks():
+            if tank.get('id') == tank_id:
+                return tank
+        return None
+
     def get_all_tanks(self) -> List[Dict]:
         """Get all tanks"""
         return self.db.get_all_tanks()
@@ -56,6 +72,37 @@ class DatabaseManager:
         """Reject a tank with reason"""
         return self.db.reject_tank(tank_id, reason)
 
+    def get_document(self, doc_id: str) -> Dict:
+        """Get a single document by ID"""
+        for doc in self.db.get_all_documents():
+            if doc.get('id') == doc_id:
+                return doc
+        return None
+
+    def get_batch_status(self, batch_id: str) -> Dict:
+        """Get status of a specific batch"""
+        for batch in self.db.get_recent_batches(100):
+            if batch.get('id') == batch_id:
+                return batch
+        return None
+
+    def update_pending_tank(self, tank_id: str, updates: Dict) -> bool:
+        """Update fields on a pending tank — writes directly to tanks.json"""
+        import json as _json
+        tanks_file = self.db.tanks_file
+        with open(tanks_file, 'r') as f:
+            all_tanks = _json.load(f)
+        updated = False
+        for tank in all_tanks:
+            if tank.get('id') == tank_id:
+                tank.update(updates)
+                updated = True
+                break
+        if updated:
+            with open(tanks_file, 'w') as f:
+                _json.dump(all_tanks, f, indent=2, default=str)
+        return updated
+
     def reject_pending_tank(self, pending_id: str, reason: str) -> bool:
         """Alias for reject_tank — called by review_server"""
         return self.db.reject_tank(pending_id, reason)
@@ -73,5 +120,19 @@ class DatabaseManager:
         return self.db.save_tank(tank_data)
     
     def confirm_pending_tank(self, pending_id: str) -> str:
-        """Confirm a pending tank"""
-        return self.db.approve_tank(pending_id)
+        """Confirm a pending tank — sets status to 'confirmed' for sync_via_api"""
+        import json as _json
+        tanks_file = self.db.tanks_file
+        with open(tanks_file, 'r') as f:
+            all_tanks = _json.load(f)
+        tank_id = None
+        for tank in all_tanks:
+            if tank.get('id') == pending_id:
+                tank['status'] = 'confirmed'
+                tank['confirmed_at'] = str(__import__('datetime').datetime.now())
+                tank_id = pending_id
+                break
+        if tank_id:
+            with open(tanks_file, 'w') as f:
+                _json.dump(all_tanks, f, indent=2, default=str)
+        return tank_id
